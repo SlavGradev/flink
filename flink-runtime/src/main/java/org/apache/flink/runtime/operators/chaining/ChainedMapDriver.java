@@ -22,6 +22,7 @@ package org.apache.flink.runtime.operators.chaining;
 import org.apache.flink.api.common.functions.Function;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.util.FunctionUtils;
+import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.operators.BatchTask;
@@ -39,6 +40,7 @@ public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 			BatchTask.instantiateUserCode(this.config, userCodeClassLoader, MapFunction.class);
 		this.mapper = mapper;
 		FunctionUtils.setFunctionRuntimeContext(mapper, getUdfRuntimeContext());
+		FunctionUtils.setOnGPUOption(mapper, this.config.isGPUTask());
 	}
 
 	@Override

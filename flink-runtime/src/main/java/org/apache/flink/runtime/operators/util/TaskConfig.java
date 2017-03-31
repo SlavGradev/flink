@@ -1206,4 +1206,7 @@ public class TaskConfig implements Serializable {
 		return config.getBoolean(SOLUTION_SET_OBJECTS, false);
 	}
 
+	public boolean isGPUTask() {
+		return false;
+	}
 }

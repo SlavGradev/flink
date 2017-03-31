@@ -19,9 +19,7 @@
 package org.apache.flink.api.common.functions.util;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.common.functions.Function;
-import org.apache.flink.api.common.functions.RichFunction;
-import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.api.common.functions.*;
 import org.apache.flink.configuration.Configuration;
 
 /**
@@ -58,6 +56,13 @@ public final class FunctionUtils {
 		}
 		else {
 			return defaultContext;
+		}
+	}
+
+	public static void setOnGPUOption(Function mapper, boolean onGPU){
+		if(GPUSupportingMapFunction.class.isAssignableFrom(mapper.getClass())){
+			GPUSupportingMapFunction gpuMapper = (GPUSupportingMapFunction) mapper;
+			gpuMapper.setOnGPU(onGPU);
 		}
 	}
 
