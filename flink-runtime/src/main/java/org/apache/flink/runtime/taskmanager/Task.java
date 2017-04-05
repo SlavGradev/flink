@@ -137,6 +137,9 @@ public class Task implements Runnable, TaskActions {
 	/** ID which identifies the slot in which the task is supposed to run */
 	private final AllocationID allocationId;
 
+	/** Target slot number, the task is suppose to run on */
+	private final int targetSlotNumber;
+
 	/** TaskInfo object for this task */
 	private final TaskInfo taskInfo;
 
@@ -250,10 +253,14 @@ public class Task implements Runnable, TaskActions {
 	/** Initialized from the Flink configuration. May also be set at the ExecutionConfig */
 	private long taskCancellationTimeout;
 
+	/** Is the task scheduled to run a GPU */
+	private boolean onGPU;
+
 	/**
-	 * <p><b>IMPORTANT:</b> This constructor may not start any work that would need to
+	 * <p><b>IMPORTANT:</b> These constructors may not start any work that would need to
 	 * be undone in the case of a failing task deployment.</p>
 	 */
+
 	public Task(
 		JobInformation jobInformation,
 		TaskInformation taskInformation,
@@ -278,7 +285,8 @@ public class Task implements Runnable, TaskActions {
 		TaskMetricGroup metricGroup,
 		ResultPartitionConsumableNotifier resultPartitionConsumableNotifier,
 		PartitionProducerStateChecker partitionProducerStateChecker,
-		Executor executor) {
+		Executor executor,
+		boolean onGPU) {
 
 		Preconditions.checkNotNull(jobInformation);
 		Preconditions.checkNotNull(taskInformation);
@@ -288,15 +296,16 @@ public class Task implements Runnable, TaskActions {
 		Preconditions.checkArgument(0 <= targetSlotNumber, "The target slot number must be positive.");
 
 		this.taskInfo = new TaskInfo(
-				taskInformation.getTaskName(),
-				taskInformation.getNumberOfKeyGroups(),
-				subtaskIndex,
-				taskInformation.getNumberOfSubtasks(),
-				attemptNumber);
+			taskInformation.getTaskName(),
+			taskInformation.getNumberOfKeyGroups(),
+			subtaskIndex,
+			taskInformation.getNumberOfSubtasks(),
+			attemptNumber);
 
 		this.jobId = jobInformation.getJobId();
 		this.vertexId = taskInformation.getJobVertexId();
 		this.executionId  = Preconditions.checkNotNull(executionAttemptID);
+		this.targetSlotNumber = targetSlotNumber;
 		this.allocationId = Preconditions.checkNotNull(slotAllocationId);
 		this.taskNameWithSubtask = taskInfo.getTaskNameWithSubtasks();
 		this.jobConfiguration = jobInformation.getJobConfiguration();
@@ -330,6 +339,7 @@ public class Task implements Runnable, TaskActions {
 
 		this.partitionProducerStateChecker = Preconditions.checkNotNull(partitionProducerStateChecker);
 		this.executor = Preconditions.checkNotNull(executor);
+		this.onGPU = onGPU;
 
 		// create the reader and writer structures
 
@@ -392,6 +402,38 @@ public class Task implements Runnable, TaskActions {
 			// add metrics for buffers
 			this.metrics.getIOMetricGroup().initializeBufferMetrics(this);
 		}
+	}
+
+	public Task(
+		JobInformation jobInformation,
+		TaskInformation taskInformation,
+		ExecutionAttemptID executionAttemptID,
+		AllocationID slotAllocationId,
+		int subtaskIndex,
+		int attemptNumber,
+		Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
+		Collection<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors,
+		int targetSlotNumber,
+		TaskStateHandles taskStateHandles,
+		MemoryManager memManager,
+		IOManager ioManager,
+		NetworkEnvironment networkEnvironment,
+		BroadcastVariableManager bcVarManager,
+		TaskManagerActions taskManagerActions,
+		InputSplitProvider inputSplitProvider,
+		CheckpointResponder checkpointResponder,
+		LibraryCacheManager libraryCache,
+		FileCache fileCache,
+		TaskManagerRuntimeInfo taskManagerConfig,
+		TaskMetricGroup metricGroup,
+		ResultPartitionConsumableNotifier resultPartitionConsumableNotifier,
+		PartitionProducerStateChecker partitionProducerStateChecker,
+		Executor executor) {
+		this(jobInformation, taskInformation, executionAttemptID, slotAllocationId, subtaskIndex, attemptNumber,
+			resultPartitionDeploymentDescriptors, inputGateDeploymentDescriptors, targetSlotNumber, taskStateHandles,
+			memManager, ioManager, networkEnvironment, bcVarManager, taskManagerActions,inputSplitProvider,
+			checkpointResponder, libraryCache, fileCache, taskManagerConfig, metricGroup,
+			resultPartitionConsumableNotifier, partitionProducerStateChecker, executor, false);
 	}
 
 	// ------------------------------------------------------------------------
@@ -575,6 +617,10 @@ public class Task implements Runnable, TaskActions {
 			if (isCanceledOrFailed()) {
 				throw new CancelTaskException();
 			}
+
+			// Set the GPU type of the execution Config
+			executionConfig.setOnGPU(onGPU);
+
 
 			// ----------------------------------------------------------------
 			// register the task with the network stack

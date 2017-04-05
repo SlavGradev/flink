@@ -142,6 +142,14 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 	 */
 	private long taskCancellationTimeoutMillis = -1;
 
+	/**
+	 * Is the task scheduled to be run on a GPU
+	 */
+
+	private boolean onGPU;
+
+
+
 	// ------------------------------- User code values --------------------------------------------
 
 	private GlobalJobParameters globalJobParameters;
@@ -621,6 +629,21 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 		this.globalJobParameters = globalJobParameters;
 	}
 
+	/**
+	 * Get the flag indicating if this task was scheduled to run on a GPU
+	 *
+	 * @return True, if task scheduled to be run on GPU, false otherwise
+	 */
+	public boolean isGPUTask(){
+		return onGPU;
+	}
+
+
+	public void setOnGPU(boolean onGPU) {
+		this.onGPU = onGPU;
+	}
+
+
 	// --------------------------------------------------------------------------------------------
 	//  Registry for types and serializers
 	// --------------------------------------------------------------------------------------------
@@ -851,7 +874,6 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 	public ArchivedExecutionConfig archive() {
 		return new ArchivedExecutionConfig(this);
 	}
-
 
 	// ------------------------------ Utilities  ----------------------------------
 

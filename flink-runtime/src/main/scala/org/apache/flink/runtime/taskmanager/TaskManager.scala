@@ -1180,7 +1180,8 @@ class TaskManager(
         taskMetricGroup,
         resultPartitionConsumableNotifier,
         partitionStateChecker,
-        context.dispatcher)
+        context.dispatcher,
+        tdd.isOnGPU)
 
       log.info(s"Received task ${task.getTaskInfo.getTaskNameWithSubtasks()}")
 

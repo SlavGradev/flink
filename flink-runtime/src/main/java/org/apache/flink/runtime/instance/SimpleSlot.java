@@ -51,6 +51,9 @@ public class SimpleSlot extends Slot {
 	/** The locality attached to the slot, defining whether the slot was allocated at the desired location. */
 	private volatile Locality locality = Locality.UNCONSTRAINED;
 
+	/** Is this a GPU slot */
+	private boolean onGPU;
+
 	// ------------------------------------------------------------------------
 	//  Old Constructors (prior FLIP-6)
 	// ------------------------------------------------------------------------
@@ -203,6 +206,14 @@ public class SimpleSlot extends Slot {
 		this.locality = locality;
 	}
 
+	public boolean isOnGPU() {
+		return onGPU;
+	}
+
+	public boolean setOnGPU(boolean onGPU) {
+		return this.onGPU = onGPU;
+	}
+
 	// ------------------------------------------------------------------------
 	//  Cancelling & Releasing
 	// ------------------------------------------------------------------------
@@ -239,4 +250,5 @@ public class SimpleSlot extends Slot {
 	public String toString() {
 		return "SimpleSlot " + super.toString();
 	}
+
 }

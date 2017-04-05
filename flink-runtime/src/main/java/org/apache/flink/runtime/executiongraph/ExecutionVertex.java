@@ -632,7 +632,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			targetSlot.getRoot().getSlotNumber(),
 			taskStateHandles,
 			producedPartitions,
-			consumedPartitions);
+			consumedPartitions,
+			targetSlot.isOnGPU());
 	}
 
 	// --------------------------------------------------------------------------------------------

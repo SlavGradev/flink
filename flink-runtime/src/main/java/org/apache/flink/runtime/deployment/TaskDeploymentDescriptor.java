@@ -66,17 +66,21 @@ public final class TaskDeploymentDescriptor implements Serializable {
 	/** State handles for the sub task */
 	private final TaskStateHandles taskStateHandles;
 
+	/** Is this task going to be ran on GPU */
+	private final boolean onGPU;
+
 	public TaskDeploymentDescriptor(
-			SerializedValue<JobInformation> serializedJobInformation,
-			SerializedValue<TaskInformation> serializedTaskInformation,
-			ExecutionAttemptID executionAttemptId,
-			AllocationID allocationId,
-			int subtaskIndex,
-			int attemptNumber,
-			int targetSlotNumber,
-			TaskStateHandles taskStateHandles,
-			Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
-			Collection<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors) {
+		SerializedValue<JobInformation> serializedJobInformation,
+		SerializedValue<TaskInformation> serializedTaskInformation,
+		ExecutionAttemptID executionAttemptId,
+		AllocationID allocationId,
+		int subtaskIndex,
+		int attemptNumber,
+		int targetSlotNumber,
+		TaskStateHandles taskStateHandles,
+		Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
+		Collection<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors,
+		boolean onGPU) {
 
 		this.serializedJobInformation = Preconditions.checkNotNull(serializedJobInformation);
 		this.serializedTaskInformation = Preconditions.checkNotNull(serializedTaskInformation);
@@ -96,6 +100,23 @@ public final class TaskDeploymentDescriptor implements Serializable {
 
 		this.producedPartitions = Preconditions.checkNotNull(resultPartitionDeploymentDescriptors);
 		this.inputGates = Preconditions.checkNotNull(inputGateDeploymentDescriptors);
+		this.onGPU = onGPU;
+	}
+
+	public TaskDeploymentDescriptor(
+			SerializedValue<JobInformation> serializedJobInformation,
+			SerializedValue<TaskInformation> serializedTaskInformation,
+			ExecutionAttemptID executionAttemptId,
+			AllocationID allocationId,
+			int subtaskIndex,
+			int attemptNumber,
+			int targetSlotNumber,
+			TaskStateHandles taskStateHandles,
+			Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
+			Collection<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors) {
+		this(serializedJobInformation, serializedTaskInformation, executionAttemptId, allocationId, subtaskIndex,
+			attemptNumber, targetSlotNumber, taskStateHandles, resultPartitionDeploymentDescriptors,
+			inputGateDeploymentDescriptors, false);
 	}
 
 	/**
@@ -143,6 +164,13 @@ public final class TaskDeploymentDescriptor implements Serializable {
 	 */
 	public int getTargetSlotNumber() {
 		return targetSlotNumber;
+	}
+
+	/**
+	 * Returns if the task was scheduled to be run on a GPU
+	 */
+	public boolean isOnGPU() {
+		return onGPU;
 	}
 
 	public Collection<ResultPartitionDeploymentDescriptor> getProducedPartitions() {

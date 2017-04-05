@@ -1205,8 +1205,4 @@ public class TaskConfig implements Serializable {
 	public boolean isSolutionSetUnmanaged() {
 		return config.getBoolean(SOLUTION_SET_OBJECTS, false);
 	}
-
-	public boolean isGPUTask() {
-		return false;
-	}
 }
