@@ -27,9 +27,14 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.operators.BatchTask;
 
+import java.util.ArrayList;
+
 public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 
+	private ArrayList<IT> inputs;
+	private GPUSupportingMapFunction<IT, OT> gpuMapper;
 	private MapFunction<IT, OT> mapper;
+	private boolean onGPU;
 
 	// --------------------------------------------------------------------------------------------
 
@@ -40,7 +45,17 @@ public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 			BatchTask.instantiateUserCode(this.config, userCodeClassLoader, MapFunction.class);
 		this.mapper = mapper;
 		FunctionUtils.setFunctionRuntimeContext(mapper, getUdfRuntimeContext());
-		FunctionUtils.setOnGPUOption(mapper, this.executionConfig.isGPUTask());
+		this.onGPU = false;
+		if(onGPU) {
+			this.gpuMapper = (GPUSupportingMapFunction<IT, OT>) this.mapper;
+			this.inputs = new ArrayList<>();
+		}
+
+		//FunctionUtils.setOnGPUOption(mapper, this.executionConfig.isGPUTask());
+		//FunctionUtils.setOnGPUOption(mapper, true);
+		//FunctionUtils.setGPUParameters(mapper, this.config.getConfiguration().getBytes("udf", null));
+
+
 	}
 
 	@Override
@@ -76,16 +91,30 @@ public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 
 	@Override
 	public void collect(IT record) {
-		try {
-			this.numRecordsIn.inc();
-			this.outputCollector.collect(this.mapper.map(record));
-		} catch (Exception ex) {
-			throw new ExceptionInChainedStubException(this.taskName, ex);
+		if(onGPU){
+			inputs.add(record);
+		}else {
+			try {
+				this.numRecordsIn.inc();
+				this.outputCollector.collect(this.mapper.map(record));
+			} catch (Exception ex) {
+				throw new ExceptionInChainedStubException(this.taskName, ex);
+			}
 		}
 	}
 
 	@Override
 	public void close() {
+		if(onGPU){
+			try {
+				OT[] outputs = this.gpuMapper.gpuMap(inputs);
+				for(OT output : outputs) {
+					this.outputCollector.collect(output);
+				}
+			} catch (Exception ex) {
+				throw new ExceptionInChainedStubException(this.taskName, ex);
+			}
+		}
 		this.outputCollector.close();
 	}
 

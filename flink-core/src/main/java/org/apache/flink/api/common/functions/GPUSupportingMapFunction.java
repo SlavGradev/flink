@@ -1,26 +1,26 @@
 package org.apache.flink.api.common.functions;
 
-import org.apache.flink.api.common.functions.MapFunction;
+import java.util.ArrayList;
 
 public abstract class GPUSupportingMapFunction<T,O> implements MapFunction<T,O> {
 
 	private boolean onGPU = false;
+	protected byte[] params;
 
+	@Override
+	public O map(T value) throws Exception {
+		return cpuMap(value);
+	}
+
+	public abstract O cpuMap(T value);
+	public abstract O[] gpuMap(ArrayList<T> value);
 
 	public void setOnGPU(boolean onGPU) {
 		this.onGPU = onGPU;
 	}
 
-	@Override
-	public O map(T value) throws Exception {
-		if(onGPU){
-			return gpuMap(value);
-		}{
-			return cpuMap(value);
-		}
+	public void setGPUParams(byte[] params) {
+		this.params = params;
 	}
-
-	public abstract O cpuMap(T value);
-	public abstract O gpuMap(T value);
 }
 
