@@ -19,8 +19,11 @@
 package org.apache.flink.api.common.functions.util;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.common.functions.*;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
+import org.apache.flink.api.common.functions.RichFunction;
+import org.apache.flink.api.common.functions.Function;
+import org.apache.flink.api.common.functions.RuntimeContext;
 
 /**
  * Utility class that contains helper methods to work with Flink {@link Function} class.
