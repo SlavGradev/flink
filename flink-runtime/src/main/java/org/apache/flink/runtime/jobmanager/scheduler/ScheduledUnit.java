@@ -76,6 +76,10 @@ public class ScheduledUnit {
 		return locationConstraint;
 	}
 
+	public boolean getOnGPU() {
+		return vertexExecution.getVertex().getOnGPU();
+	}
+
 	// --------------------------------------------------------------------------------------------
 	
 	@Override

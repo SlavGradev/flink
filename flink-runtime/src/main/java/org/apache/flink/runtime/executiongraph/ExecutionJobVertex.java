@@ -119,6 +119,11 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 		int vertexParallelism = jobVertex.getParallelism();
 		int numTaskVertices = vertexParallelism > 0 ? vertexParallelism : defaultParallelism;
 
+		if(jobVertex.getOperatorPrettyName().contains("Map")){
+			// Add GPU taskSlot
+			numTaskVertices += 1;
+		}
+
 		this.parallelism = numTaskVertices;
 
 		int maxP = jobVertex.getMaxParallelism();
@@ -170,7 +175,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 		// create all task vertices
 		for (int i = 0; i < numTaskVertices; i++) {
 			ExecutionVertex vertex = new ExecutionVertex(
-					this, i, this.producedDataSets, timeout, createTimestamp, maxPriorAttemptsHistoryLength);
+					this, i, this.producedDataSets, timeout, createTimestamp, maxPriorAttemptsHistoryLength, i == 0);
 
 			this.taskVertices[i] = vertex;
 		}
@@ -633,4 +638,5 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 	public ArchivedExecutionJobVertex archive() {
 		return new ArchivedExecutionJobVertex(this);
 	}
+
 }

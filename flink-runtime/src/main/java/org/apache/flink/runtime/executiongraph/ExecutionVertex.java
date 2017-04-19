@@ -93,6 +93,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 	private volatile boolean scheduleLocalOnly;
 
+	private boolean onGPU;
+
 	// --------------------------------------------------------------------------------------------
 
 	public ExecutionVertex(
@@ -106,7 +108,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 				producedDataSets,
 				timeout,
 				System.currentTimeMillis(),
-				JobManagerOptions.MAX_ATTEMPTS_HISTORY_SIZE.defaultValue());
+				JobManagerOptions.MAX_ATTEMPTS_HISTORY_SIZE.defaultValue(),
+				false);
 	}
 
 	public ExecutionVertex(
@@ -115,7 +118,14 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			IntermediateResult[] producedDataSets,
 			Time timeout,
 			int maxPriorExecutionHistoryLength) {
-		this(jobVertex, subTaskIndex, producedDataSets, timeout, System.currentTimeMillis(), maxPriorExecutionHistoryLength);
+		this(
+				jobVertex,
+				subTaskIndex,
+				producedDataSets,
+				timeout,
+				System.currentTimeMillis(),
+				maxPriorExecutionHistoryLength,
+				false);
 	}
 
 	public ExecutionVertex(
@@ -124,7 +134,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			IntermediateResult[] producedDataSets,
 			Time timeout,
 			long createTimestamp,
-			int maxPriorExecutionHistoryLength) {
+			int maxPriorExecutionHistoryLength,
+			boolean onGPU) {
 
 		this.jobVertex = jobVertex;
 		this.subTaskIndex = subTaskIndex;
@@ -161,6 +172,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 		}
 
 		this.timeout = timeout;
+		this.onGPU = onGPU;
 	}
 
 
@@ -273,6 +285,10 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 	public Map<IntermediateResultPartitionID, IntermediateResultPartition> getProducedPartitions() {
 		return resultPartitions;
+	}
+
+	public boolean getOnGPU() {
+		return onGPU;
 	}
 
 	// --------------------------------------------------------------------------------------------

@@ -309,7 +309,7 @@ public class Scheduler implements InstanceListener, SlotAvailabilityListener, Sl
 
 					ExceptionUtils.rethrow(t, "An error occurred while allocating a slot in a sharing group");
 				}
-
+				toUse.setOnGPU(task.getOnGPU());
 				return toUse;
 			}
 			else {
