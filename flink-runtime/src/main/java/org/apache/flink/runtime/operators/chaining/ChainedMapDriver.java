@@ -31,9 +31,9 @@ import java.util.ArrayList;
 
 public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 
+	private MapFunction<IT, OT> mapper;
 	private ArrayList<IT> inputs;
 	private GPUSupportingMapFunction<IT, OT> gpuMapper;
-	private MapFunction<IT, OT> mapper;
 	private boolean onGPU;
 
 	// --------------------------------------------------------------------------------------------

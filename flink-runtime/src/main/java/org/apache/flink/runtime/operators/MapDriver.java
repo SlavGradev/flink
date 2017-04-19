@@ -19,11 +19,14 @@
 package org.apache.flink.runtime.operators;
 
 import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.runtime.operators.util.metrics.CountingCollector;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.MutableObjectIterator;
+
+import java.util.ArrayList;
 
 /**
  * Map task which is executed by a Task Manager. The task has a single
@@ -45,6 +48,8 @@ public class MapDriver<IT, OT> implements Driver<MapFunction<IT, OT>, OT> {
 	private volatile boolean running;
 
 	private boolean objectReuseEnabled = false;
+
+	private boolean onGPU;
 	
 	
 	@Override
@@ -54,6 +59,7 @@ public class MapDriver<IT, OT> implements Driver<MapFunction<IT, OT>, OT> {
 
 		ExecutionConfig executionConfig = taskContext.getExecutionConfig();
 		this.objectReuseEnabled = executionConfig.isObjectReuseEnabled();
+		this.onGPU = executionConfig.isGPUTask();
 	}
 
 	@Override
@@ -85,22 +91,36 @@ public class MapDriver<IT, OT> implements Driver<MapFunction<IT, OT>, OT> {
 		// cache references on the stack
 		final MutableObjectIterator<IT> input = this.taskContext.getInput(0);
 		final MapFunction<IT, OT> function = this.taskContext.getStub();
-		final Collector<OT> output = new CountingCollector<>(this.taskContext.getOutputCollector(), numRecordsOut);
+		final Collector<OT> outputCollector = new CountingCollector<>(this.taskContext.getOutputCollector(), numRecordsOut);
+
 
 		if (objectReuseEnabled) {
 			IT record = this.taskContext.<IT>getInputSerializer(0).getSerializer().createInstance();
 	
 			while (this.running && ((record = input.next(record)) != null)) {
 				numRecordsIn.inc();
-				output.collect(function.map(record));
+				outputCollector.collect(function.map(record));
 			}
 		}
 		else {
 			IT record = null;
-			
-			while (this.running && ((record = input.next()) != null)) {
-				numRecordsIn.inc();
-				output.collect(function.map(record));
+			if(onGPU){
+				final ArrayList<IT> inputs = new ArrayList<>();
+				while(this.running && ((record = input.next()) != null)) {
+					inputs.add(record);
+					numRecordsIn.inc();
+				}
+				final GPUSupportingMapFunction<IT, OT> gpuFunction = (GPUSupportingMapFunction<IT, OT>) function;
+				OT[] outputs = gpuFunction.gpuMap(inputs);
+				for(OT output : outputs){
+					outputCollector.collect(output);
+				}
+
+			} else {
+				while (this.running && ((record = input.next()) != null)) {
+					numRecordsIn.inc();
+					outputCollector.collect(function.map(record));
+				}
 			}
 		}
 	}
