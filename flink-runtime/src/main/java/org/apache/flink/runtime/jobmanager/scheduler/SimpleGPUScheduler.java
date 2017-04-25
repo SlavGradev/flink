@@ -101,6 +101,7 @@ public class SimpleGPUScheduler extends Scheduler {
 	 * Creates a new scheduler.
 	 */
 	public SimpleGPUScheduler(ExecutionContext executionContext) {
+		super(executionContext);
 		this.executionContext = executionContext;
 	}
 	

@@ -648,41 +648,77 @@ public class BatchTask<S extends Function, OT> extends AbstractInvokable impleme
 	 * This method requires that the task configuration, the driver, and the user-code class loader are set.
 	 */
 	protected void initInputReaders() throws Exception {
-		final int numInputs = getNumTaskInputs();
-		final MutableReader<?>[] inputReaders = new MutableReader<?>[numInputs];
 
-		int currentReaderOffset = 0;
+		if(!getEnvironment().getExecutionConfig().isGPUTask()) {
+			final int numInputs = getNumTaskInputs();
+			final MutableReader<?>[] inputReaders = new MutableReader<?>[numInputs];
 
-		for (int i = 0; i < numInputs; i++) {
-			//  ---------------- create the input readers ---------------------
-			// in case where a logical input unions multiple physical inputs, create a union reader
-			final int groupSize = this.config.getGroupSize(i);
+			int currentReaderOffset = 0;
 
-			if (groupSize == 1) {
-				// non-union case
-				inputReaders[i] = new MutableRecordReader<IOReadableWritable>(
+			for (int i = 0; i < numInputs; i++) {
+				//  ---------------- create the input readers ---------------------
+				// in case where a logical input unions multiple physical inputs, create a union reader
+				final int groupSize = this.config.getGroupSize(i);
+
+				if (groupSize == 1) {
+					// non-union case
+					inputReaders[i] = new MutableRecordReader<IOReadableWritable>(
 						getEnvironment().getInputGate(currentReaderOffset),
 						getEnvironment().getTaskManagerInfo().getTmpDirectories());
-			} else if (groupSize > 1){
-				// union case
-				InputGate[] readers = new InputGate[groupSize];
-				for (int j = 0; j < groupSize; ++j) {
-					readers[j] = getEnvironment().getInputGate(currentReaderOffset + j);
-				}
-				inputReaders[i] = new MutableRecordReader<IOReadableWritable>(
+				} else if (groupSize > 1) {
+					// union case
+					InputGate[] readers = new InputGate[groupSize];
+					for (int j = 0; j < groupSize; ++j) {
+						readers[j] = getEnvironment().getInputGate(currentReaderOffset + j);
+					}
+					inputReaders[i] = new MutableRecordReader<IOReadableWritable>(
 						new UnionInputGate(readers),
 						getEnvironment().getTaskManagerInfo().getTmpDirectories());
-			} else {
-				throw new Exception("Illegal input group size in task configuration: " + groupSize);
+				} else {
+					throw new Exception("Illegal input group size in task configuration: " + groupSize);
+				}
+
+				currentReaderOffset += groupSize;
 			}
+			this.inputReaders = inputReaders;
 
-			currentReaderOffset += groupSize;
-		}
-		this.inputReaders = inputReaders;
+			// final sanity check
+			if (currentReaderOffset != this.config.getNumInputs()) {
+				throw new Exception("Illegal configuration: Number of input gates and group sizes are not consistent.");
+			}
+		} else {
+			final int numInputs = getNumTaskInputs();
+			final MutableReader<?>[] inputReaders = new MutableReader<?>[numInputs];
 
-		// final sanity check
-		if (currentReaderOffset != this.config.getNumInputs()) {
-			throw new Exception("Illegal configuration: Number of input gates and group sizes are not consistent.");
+			int currentReaderOffset = 0;
+
+			for (int i = 0; i < numInputs; i++) {
+				//  ---------------- create the input readers ---------------------
+				// in case where a logical input unions multiple physical inputs, create a union reader
+				final int groupSize = this.getEnvironment().getAllInputGates().length;
+
+				if (groupSize == 1) {
+					// non-union case
+					inputReaders[i] = new MutableRecordReader<IOReadableWritable>(
+						getEnvironment().getInputGate(currentReaderOffset),
+						getEnvironment().getTaskManagerInfo().getTmpDirectories());
+				} else if (groupSize > 1) {
+					// union case
+					InputGate[] readers = new InputGate[groupSize];
+					for (int j = 0; j < groupSize; ++j) {
+						readers[j] = getEnvironment().getInputGate(currentReaderOffset + j);
+					}
+					inputReaders[i] = new MutableRecordReader<IOReadableWritable>(
+						new UnionInputGate(readers),
+						getEnvironment().getTaskManagerInfo().getTmpDirectories());
+				} else {
+					throw new Exception("Illegal input group size in task configuration: " + groupSize);
+				}
+
+				currentReaderOffset += groupSize;
+			}
+			this.inputReaders = inputReaders;
+
 		}
 	}
 

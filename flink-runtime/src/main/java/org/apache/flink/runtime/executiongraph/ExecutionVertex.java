@@ -327,11 +327,14 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 	}
 
 	private ExecutionEdge[] connectAllToAll(IntermediateResultPartition[] sourcePartitions, int inputNumber) {
-		ExecutionEdge[] edges = new ExecutionEdge[sourcePartitions.length];
+		int numOfEdges = sourcePartitions.length;
+		if(onGPU) numOfEdges *= 2;
+		ExecutionEdge[] edges = new ExecutionEdge[numOfEdges];
 
 		for (int i = 0; i < sourcePartitions.length; i++) {
 			IntermediateResultPartition irp = sourcePartitions[i];
 			edges[i] = new ExecutionEdge(irp, this, inputNumber);
+			if(onGPU) edges[i+1] = new ExecutionEdge(irp, this, inputNumber);
 		}
 
 		return edges;
@@ -617,22 +620,45 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 		for (IntermediateResultPartition partition : resultPartitions.values()) {
 			producedPartitions.add(ResultPartitionDeploymentDescriptor.from(partition, lazyScheduling));
 		}
-		
-		
-		for (ExecutionEdge[] edges : inputEdges) {
-			InputChannelDeploymentDescriptor[] partitions = InputChannelDeploymentDescriptor
+
+
+		if(!onGPU) {
+			for (ExecutionEdge[] edges : inputEdges) {
+				InputChannelDeploymentDescriptor[] partitions = InputChannelDeploymentDescriptor
 					.fromEdges(edges, targetSlot, lazyScheduling);
 
-			// If the produced partition has multiple consumers registered, we
-			// need to request the one matching our sub task index.
-			// TODO Refactor after removing the consumers from the intermediate result partitions
-			int numConsumerEdges = edges[0].getSource().getConsumers().get(0).size();
+				// If the produced partition has multiple consumers registered, we
+				// need to request the one matching our sub task index.
+				// TODO Refactor after removing the consumers from the intermediate result partitions
+				int numConsumerEdges = edges[0].getSource().getConsumers().get(0).size();
 
-			int queueToRequest = subTaskIndex % numConsumerEdges;
+				int queueToRequest = subTaskIndex % numConsumerEdges;
 
-			IntermediateDataSetID resultId = edges[0].getSource().getIntermediateResult().getId();
+				IntermediateDataSetID resultId = edges[0].getSource().getIntermediateResult().getId();
+				consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
+			}
+		} else {
+			for (ExecutionEdge[] edges : inputEdges) {
+				for (int i = 0; i < edges.length; i++) {
+					ExecutionEdge[] edgeArray = new ExecutionEdge[1];
+					edgeArray[0] = edges[i];
+					InputChannelDeploymentDescriptor[] partitions = InputChannelDeploymentDescriptor
+						.fromEdges(edgeArray, targetSlot, lazyScheduling);
 
-			consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
+					// If the produced partition has multiple consumers registered, we
+					// need to request the one matching our sub task index.
+					// TODO Refactor after removing the consumers from the intermediate result partitions
+					int numConsumerEdges = edges[0].getSource().getConsumers().get(0).size();
+
+					int index = (i == 0) ? 0 : numConsumerEdges - i;
+
+					int queueToRequest = index % numConsumerEdges;
+
+					IntermediateDataSetID resultId = edges[0].getSource().getIntermediateResult().getId();
+
+					consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
+				}
+			}
 		}
 
 		SerializedValue<JobInformation> serializedJobInformation = getExecutionGraph().getSerializedJobInformation();
@@ -649,7 +675,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			taskStateHandles,
 			producedPartitions,
 			consumedPartitions,
-			targetSlot.isOnGPU());
+			onGPU);
 	}
 
 	// --------------------------------------------------------------------------------------------
