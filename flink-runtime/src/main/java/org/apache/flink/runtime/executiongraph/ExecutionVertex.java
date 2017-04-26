@@ -20,6 +20,7 @@ package org.apache.flink.runtime.executiongraph;
 
 import org.apache.flink.api.common.Archiveable;
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.runtime.JobException;
 import org.apache.flink.runtime.deployment.InputChannelDeploymentDescriptor;
@@ -328,14 +329,26 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 	private ExecutionEdge[] connectAllToAll(IntermediateResultPartition[] sourcePartitions, int inputNumber) {
 		int numOfEdges = sourcePartitions.length;
-		if(onGPU) numOfEdges *= 2;
+		int k = (onGPU)? 4 : 1;
+		numOfEdges *= k;
+
 		ExecutionEdge[] edges = new ExecutionEdge[numOfEdges];
 
-		for (int i = 0; i < sourcePartitions.length; i++) {
-			IntermediateResultPartition irp = sourcePartitions[i];
-			edges[i] = new ExecutionEdge(irp, this, inputNumber);
-			if(onGPU) edges[i+1] = new ExecutionEdge(irp, this, inputNumber);
+		if(!onGPU) {
+			for (int i = 0; i < sourcePartitions.length; i++) {
+				IntermediateResultPartition irp = sourcePartitions[i];
+				edges[i] = new ExecutionEdge(irp, this, inputNumber);
+			}
+		} else {
+			// K times more edges are created
+			for (int i = 0; i < sourcePartitions.length; i++) {
+				IntermediateResultPartition irp = sourcePartitions[i];
+				for (int j = 0; j < k; j++) {
+					edges[i + j] = new ExecutionEdge(irp, this, inputNumber);
+				}
+			}
 		}
+
 
 		return edges;
 	}
