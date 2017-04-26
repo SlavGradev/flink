@@ -62,12 +62,6 @@ public final class FunctionUtils {
 		}
 	}
 
-	public static void setOnGPUOption(Function mapper, boolean onGPU){
-		if(GPUSupportingMapFunction.class.isAssignableFrom(mapper.getClass())){
-			GPUSupportingMapFunction gpuMapper = (GPUSupportingMapFunction) mapper;
-			gpuMapper.setOnGPU(onGPU);
-		}
-	}
 
 	/**
 	 * Private constructor to prevent instantiation.
