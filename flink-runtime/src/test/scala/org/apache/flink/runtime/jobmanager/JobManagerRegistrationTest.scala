@@ -82,7 +82,8 @@ ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
             resourceId1,
             connectionInfo1,
             hardwareDescription,
-            1),
+            1,
+            0),
           new AkkaActorGateway(tm1, null))
 
         val response = expectMsgType[LeaderSessionMessage]
@@ -99,7 +100,8 @@ ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
             resourceId2,
             connectionInfo2,
             hardwareDescription,
-            1),
+            1,
+            0),
           new AkkaActorGateway(tm2, null))
 
         val response = expectMsgType[LeaderSessionMessage]
@@ -131,7 +133,8 @@ ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
             resourceID,
             connectionInfo,
             hardwareDescription,
-            1),
+            1,
+            0),
           selfGateway)
 
         jm.tell(
@@ -139,7 +142,8 @@ ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
             resourceID,
             connectionInfo,
             hardwareDescription,
-            1),
+            1,
+            0),
           selfGateway)
 
         jm.tell(
@@ -147,7 +151,8 @@ ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
             resourceID,
             connectionInfo,
             hardwareDescription,
-            1),
+            1,
+            0),
           selfGateway)
 
         expectMsgType[LeaderSessionMessage] match {

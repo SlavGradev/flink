@@ -243,6 +243,11 @@ public final class ConfigConstants {
 	public static final String TASK_MANAGER_NUM_TASK_SLOTS = "taskmanager.numberOfTaskSlots";
 
 	/**
+	 * The config parameter defining the number of gpu task slots of a task manager.
+	 */
+	public static final String TASK_MANAGER_NUM_GPU_TASK_SLOTS = "taskmanager.numberOfGPUTaskSlots";
+
+	/**
 	 * Flag indicating whether to start a thread, which repeatedly logs the memory usage of the JVM.
 	 */
 	public static final String TASK_MANAGER_DEBUG_MEMORY_USAGE_START_LOG_THREAD = "taskmanager.debug.memory.startLogThread";

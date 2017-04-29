@@ -40,6 +40,8 @@ public class TaskManagerConfiguration implements TaskManagerRuntimeInfo {
 
 	private final int numberSlots;
 
+	private final int gpuSlots;
+
 	private final String[] tmpDirectories;
 
 	private final Time timeout;
@@ -65,6 +67,7 @@ public class TaskManagerConfiguration implements TaskManagerRuntimeInfo {
 		Configuration configuration) {
 
 		this.numberSlots = numberSlots;
+		this.gpuSlots = configuration.getInteger(ConfigConstants.TASK_MANAGER_NUM_GPU_TASK_SLOTS, 0);
 		this.tmpDirectories = Preconditions.checkNotNull(tmpDirectories);
 		this.timeout = Preconditions.checkNotNull(timeout);
 		this.maxRegistrationDuration = maxRegistrationDuration;
@@ -77,6 +80,10 @@ public class TaskManagerConfiguration implements TaskManagerRuntimeInfo {
 
 	public int getNumberSlots() {
 		return numberSlots;
+	}
+
+	public int getNumberGPUSlots() {
+		return gpuSlots;
 	}
 
 	public Time getTimeout() {

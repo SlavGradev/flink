@@ -139,7 +139,27 @@ public class InstanceManager {
 			TaskManagerLocation taskManagerLocation,
 			HardwareDescription resources,
 			int numberOfSlots) {
-		
+		return registerTaskManager(taskManagerGateway, taskManagerLocation, resources,numberOfSlots, 0);
+	}
+
+	/**
+	 * Registers a task manager. Registration of a task manager makes it available to be used
+	 * for the job execution.
+	 *
+	 * @param taskManagerGateway gateway to the task manager
+	 * @param taskManagerLocation Location info of the TaskManager
+	 * @param resources Hardware description of the TaskManager
+	 * @param numberOfSlots Number of available slots on the TaskManager
+	 * @param numberOfSlots Number of available gpu slots on the TaskManager
+	 * @return The assigned InstanceID of the registered task manager
+	 */
+	public InstanceID registerTaskManager(
+		TaskManagerGateway taskManagerGateway,
+		TaskManagerLocation taskManagerLocation,
+		HardwareDescription resources,
+		int numberOfSlots,
+		int gpuSlots) {
+
 		synchronized (this.lock) {
 			if (this.isShutdown) {
 				throw new IllegalStateException("InstanceManager is shut down.");
@@ -155,7 +175,7 @@ public class InstanceManager {
 			boolean wasDead = this.deadHosts.remove(taskManagerLocation.getResourceID());
 			if (wasDead) {
 				LOG.info("Registering TaskManager at " + taskManagerLocation.addressString() +
-						" which was marked as dead earlier because of a heart-beat timeout.");
+					" which was marked as dead earlier because of a heart-beat timeout.");
 			}
 
 			InstanceID instanceID = new InstanceID();
@@ -165,7 +185,8 @@ public class InstanceManager {
 				taskManagerLocation,
 				instanceID,
 				resources,
-				numberOfSlots);
+				numberOfSlots,
+				gpuSlots);
 
 			registeredHostsById.put(instanceID, host);
 			registeredHostsByResource.put(taskManagerLocation.getResourceID(), host);
@@ -174,13 +195,13 @@ public class InstanceManager {
 
 			if (LOG.isInfoEnabled()) {
 				LOG.info(String.format("Registered TaskManager at %s (%s) as %s. " +
-								"Current number of registered hosts is %d. " +
-								"Current number of alive task slots is %d.",
-						taskManagerLocation.getHostname(),
-						taskManagerGateway.getAddress(),
-						instanceID,
-						registeredHostsById.size(),
-						totalNumberOfAliveTaskSlots));
+						"Current number of registered hosts is %d. " +
+						"Current number of alive task slots is %d.",
+					taskManagerLocation.getHostname(),
+					taskManagerGateway.getAddress(),
+					instanceID,
+					registeredHostsById.size(),
+					totalNumberOfAliveTaskSlots));
 			}
 
 			host.reportHeartBeat();

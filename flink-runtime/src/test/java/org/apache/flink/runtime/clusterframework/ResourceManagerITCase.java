@@ -94,7 +94,7 @@ public class ResourceManagerITCase extends TestLogger {
 			HardwareDescription resourceProfile = HardwareDescription.extractFromSystem(1_000_000);
 
 			jobManager.tell(
-				new RegistrationMessages.RegisterTaskManager(resourceID, location, resourceProfile, 1),
+				new RegistrationMessages.RegisterTaskManager(resourceID, location, resourceProfile, 1, 0),
 				me);
 
 			expectMsgClass(RegistrationMessages.AcknowledgeRegistration.class);

@@ -384,6 +384,8 @@ class LocalFlinkMiniCluster(
     config.setInteger(NettyConfig.NUM_THREADS_CLIENT, 1)
     config.setInteger(NettyConfig.NUM_THREADS_SERVER, 2)
 
+    config.setInteger(ConfigConstants.TASK_MANAGER_NUM_GPU_TASK_SLOTS, 1)
+
     config
   }
 

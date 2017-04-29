@@ -379,7 +379,8 @@ class JobManager(
           resourceId,
           connectionInfo,
           hardwareInformation,
-          numberOfSlots) =>
+          numberOfSlots,
+          gpuSlots) =>
       // we are being informed by the ResourceManager that a new task manager is available
       log.debug(s"RegisterTaskManager: $msg")
 
@@ -420,7 +421,8 @@ class JobManager(
             taskManagerGateway,
             connectionInfo,
             hardwareInformation,
-            numberOfSlots)
+            numberOfSlots,
+            gpuSlots)
 
           taskManagerMap.put(taskManager, instanceID)
 

@@ -66,7 +66,8 @@ object RegistrationMessages {
                                   resourceId: ResourceID,
                                   connectionInfo: TaskManagerLocation,
                                   resources: HardwareDescription,
-                                  numberOfSlots: Int)
+                                  numberOfSlots: Int,
+                                  gpuSlots: Int)
     extends RegistrationMessage
 
   /**

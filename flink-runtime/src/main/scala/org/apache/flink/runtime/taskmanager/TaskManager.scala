@@ -578,7 +578,8 @@ class TaskManager(
                 resourceID,
                 location,
                 resources,
-                numberOfSlots)
+                numberOfSlots,
+                config.getNumberGPUSlots)
             )
 
             // the next timeout computes via exponential backoff with cap

@@ -71,6 +71,12 @@ public class Instance implements SlotOwner {
 	/** Allocated slots on this taskManager */
 	private final Set<Slot> allocatedSlots = new HashSet<Slot>();
 
+	/** A list of available slot positions */
+	private final Queue<Integer> gpuAvailableSlots;
+
+	/** Allocated slots on this taskManager */
+	private final Set<Slot> gpuAllocatedSlots = new HashSet<Slot>();
+
 	/** A listener to be notified upon new slot availability */
 	private SlotAvailabilityListener slotAvailabilityListener;
 
@@ -98,6 +104,26 @@ public class Instance implements SlotOwner {
 			InstanceID id,
 			HardwareDescription resources,
 			int numberOfSlots) {
+		this(taskManagerGateway, location, id, resources, numberOfSlots, 0);
+	}
+
+	/**
+	 * Constructs an instance reflecting a registered TaskManager.
+	 *
+	 * @param taskManagerGateway The actor gateway to communicate with the remote instance
+	 * @param location The remote connection where the task manager receives requests.
+	 * @param id The id under which the taskManager is registered.
+	 * @param resources The resources available on the machine.
+	 * @param numberOfSlots The number of task slots offered by this taskManager.
+	 * @param numberOfSlots The number of gpu task slots offered by this taskManager.
+	 */
+	public Instance(
+		TaskManagerGateway taskManagerGateway,
+		TaskManagerLocation location,
+		InstanceID id,
+		HardwareDescription resources,
+		int numberOfSlots,
+		int numberOfGPUSlots) {
 		this.taskManagerGateway = Preconditions.checkNotNull(taskManagerGateway);
 		this.location = Preconditions.checkNotNull(location);
 		this.instanceId = Preconditions.checkNotNull(id);
@@ -107,6 +133,11 @@ public class Instance implements SlotOwner {
 		this.availableSlots = new ArrayDeque<>(numberOfSlots);
 		for (int i = 0; i < numberOfSlots; i++) {
 			this.availableSlots.add(i);
+		}
+
+		this.gpuAvailableSlots = new ArrayDeque<>(numberOfGPUSlots);
+		for (int i = 0; i < numberOfGPUSlots; i++) {
+			this.gpuAvailableSlots.add(i);
 		}
 	}
 
