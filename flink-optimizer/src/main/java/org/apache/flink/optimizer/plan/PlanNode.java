@@ -73,6 +73,8 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 	private double relativeMemoryPerSubTask;					// the amount of memory dedicated to each task, in bytes
 	
 	private int parallelism;
+
+	private int gpuCoefficient;
 	
 	private boolean pFlag;							// flag for the internal pruning algorithm
 	
@@ -86,6 +88,7 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 		this.driverStrategy = strategy;
 		
 		this.parallelism = template.getParallelism();
+		this.gpuCoefficient = template.getGPUCoefficient();
 
 		// check, if there is branch at this node. if yes, this candidate must be associated with
 		// the branching template node.
@@ -307,6 +310,14 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 	
 	public int getParallelism() {
 		return this.parallelism;
+	}
+
+	public void setGPUCoefficient(int gpuCoefficient) {
+		this.gpuCoefficient = gpuCoefficient;
+	}
+
+	public int getGPUCoefficient() {
+		return this.gpuCoefficient;
 	}
 	
 	public long getGuaranteedAvailableMemory() {

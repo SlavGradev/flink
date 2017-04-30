@@ -37,6 +37,7 @@ public abstract class Operator<OUT, O extends Operator<OUT, O>> extends DataSet<
 	protected String name;
 	
 	protected int parallelism = ExecutionConfig.PARALLELISM_DEFAULT;
+	private int gpuCoefficient = ExecutionConfig.GPU_COEFFICIENT_DEFAULT;
 
 	protected Operator(ExecutionEnvironment context, TypeInformation<OUT> resultType) {
 		super(context, resultType);
@@ -71,6 +72,15 @@ public abstract class Operator<OUT, O extends Operator<OUT, O>> extends DataSet<
 	}
 
 	/**
+	 * Returns the gpu coefficient of this operator.
+	 *
+	 * @return The gpu coefficient of this operator.
+	 */
+	public int getGpuCoefficient() {
+		return this.gpuCoefficient;
+	}
+
+	/**
 	 * Sets the name of this operator. This overrides the default name, which is either
 	 * a generated description of the operation (such as for example "Aggregate(1:SUM, 2:MIN)")
 	 * or the name the user-defined function or input/output format executed by the operator.
@@ -98,6 +108,25 @@ public abstract class Operator<OUT, O extends Operator<OUT, O>> extends DataSet<
 			"The parallelism of an operator must be at least 1.");
 
 		this.parallelism = parallelism;
+
+		@SuppressWarnings("unchecked")
+		O returnType = (O) this;
+		return returnType;
+	}
+
+	/**
+	 * Sets the gpuCoefficient for this operator.
+	 * The coefficient must be 0 or more.
+	 *
+	 * @param gpuCoefficient The coefficient for this operator. A value equal to {@link ExecutionConfig#GPU_COEFFICIENT_DEFAULT}
+	 *        will use the system default.
+	 * @return The operator with set gpu coefficient.
+	 */
+	public O setGPUCoefficient(int gpuCoefficient) {
+		Preconditions.checkArgument(gpuCoefficient >= 0,
+			"The gpu coefficient of an operator must be at least 0.");
+
+		this.gpuCoefficient = gpuCoefficient;
 
 		@SuppressWarnings("unchecked")
 		O returnType = (O) this;

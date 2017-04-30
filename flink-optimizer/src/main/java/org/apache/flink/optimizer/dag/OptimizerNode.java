@@ -101,6 +101,8 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 	
 	private int parallelism = ExecutionConfig.PARALLELISM_DEFAULT; // the number of parallel instances of this node
 
+	private int gpuCoefficient = ExecutionConfig.GPU_COEFFICIENT_DEFAULT;
+
 	private long minimalMemoryPerSubTask = -1;
 
 	protected int id = -1; 				// the id for this node.
@@ -397,7 +399,25 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 		}
 		this.parallelism = parallelism;
 	}
-	
+
+	/**
+	 * Gets the gpu coefficient for this instance. The coefficient decides how much data to be allocated to the gpu.
+	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
+	 * @return The parallelism.
+	 */
+	public int getGPUCoefficient() {
+		return this.gpuCoefficient;
+	}
+
+	/**
+	 * Sets the gpu coefficient for this contract instance.
+	 * @param gpuCoefficient The coefficient decides how much data to be allocated to the gpu.
+	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
+	 */
+	public void setGPUCoefficient(int gpuCoefficient) {
+		this.gpuCoefficient = gpuCoefficient;
+	}
+
 	/**
 	 * Gets the amount of memory that all subtasks of this task have jointly available.
 	 * 

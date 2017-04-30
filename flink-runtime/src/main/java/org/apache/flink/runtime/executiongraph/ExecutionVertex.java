@@ -329,7 +329,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 	private ExecutionEdge[] connectAllToAll(IntermediateResultPartition[] sourcePartitions, int inputNumber) {
 		int numOfEdges = sourcePartitions.length;
-		int k = (onGPU)? 4 : 1;
+		int k = (onGPU)? this.getJobVertex().getJobVertex().getGPUCoefficient() : 1;
 		numOfEdges *= k;
 
 		ExecutionEdge[] edges = new ExecutionEdge[numOfEdges];

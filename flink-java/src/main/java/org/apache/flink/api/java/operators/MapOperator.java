@@ -73,7 +73,12 @@ public class MapOperator<IN, OUT> extends SingleInputUdfOperator<IN, OUT, MapOpe
 			// if no parallelism has been specified, use parallelism of input operator to enable chaining
 			po.setParallelism(input.getParallelism());
 		}
-		
+
+		if(this.getGpuCoefficient() >= 0) {
+			// use specified gpu coefficient
+			po.setGPUCoefficient(this.getGpuCoefficient());
+		}
+
 		return po;
 	}
 	

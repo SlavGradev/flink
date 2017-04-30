@@ -59,6 +59,9 @@ public class JobVertex implements java.io.Serializable {
 	/** Number of subtasks to split this task into at runtime.*/
 	private int parallelism = ExecutionConfig.PARALLELISM_DEFAULT;
 
+	/** Number of subtasks to split this task into at runtime.*/
+	private int gpuCoefficient = ExecutionConfig.GPU_COEFFICIENT_DEFAULT;
+
 	/** Maximum number of subtasks to split this taks into a runtime. */
 	private int maxParallelism = Short.MAX_VALUE;
 
@@ -259,6 +262,27 @@ public class JobVertex implements java.io.Serializable {
 			throw new IllegalArgumentException("The parallelism must be at least one.");
 		}
 		this.parallelism = parallelism;
+	}
+
+	/**
+	 * Gets the gpu coefficient of the task.
+	 *
+	 * @return The gpu coefficient.
+	 */
+	public int getGPUCoefficient() {
+		return gpuCoefficient;
+	}
+
+	/**
+	 * Sets the gpu coefficient of the task.
+	 *
+	 * @param gpuCoefficient The gpu coefficient for the task.
+	 */
+	public void setGPUCoefficient(int gpuCoefficient) {
+		if (gpuCoefficient < 0) {
+			throw new IllegalArgumentException("The gpu coefficient cannot be a negative number.");
+		}
+		this.gpuCoefficient = gpuCoefficient;
 	}
 
 	/**

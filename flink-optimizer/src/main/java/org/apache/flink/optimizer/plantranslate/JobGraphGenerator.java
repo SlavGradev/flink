@@ -386,7 +386,8 @@ public class JobGraphGenerator implements Visitor<PlanNode> {
 			// set parallelism
 			int pd = node.getParallelism();
 			vertex.setParallelism(pd);
-			
+			vertex.setGPUCoefficient(node.getGPUCoefficient());
+
 			vertex.setSlotSharingGroup(sharingGroup);
 			
 			// check whether this vertex is part of an iteration step function

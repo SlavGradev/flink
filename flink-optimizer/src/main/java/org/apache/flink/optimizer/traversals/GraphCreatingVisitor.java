@@ -256,6 +256,11 @@ public class GraphCreatingVisitor implements Visitor<Operator<?>> {
 			n.setParallelism(par);
 		}
 
+
+		if (c.getGPUCoefficient() > 0) {
+			n.setGPUCoefficient(c.getGPUCoefficient());
+		}
+
 		return true;
 	}
 

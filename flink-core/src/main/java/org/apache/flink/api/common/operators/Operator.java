@@ -45,6 +45,8 @@ public abstract class Operator<OUT> implements Visitable<Operator<?>> {
 		
 	private int parallelism = ExecutionConfig.PARALLELISM_DEFAULT;  // the number of parallel instances to use
 
+	private int gpuCoefficient = ExecutionConfig.GPU_COEFFICIENT_DEFAULT; // how much data is given to a gpu
+
 	/**
 	 * The return type of the user function.
 	 */
@@ -184,7 +186,26 @@ public abstract class Operator<OUT> implements Visitable<Operator<?>> {
 	public void setParallelism(int parallelism) {
 		this.parallelism = parallelism;
 	}
-	
+
+	/**
+	 * Gets the gpu coefficient for this instance. The coefficient decides how much data to be allocated to the gpu.
+	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
+	 * @return The parallelism.
+	 */
+	public int getGPUCoefficient() {
+		return this.gpuCoefficient;
+	}
+
+	/**
+	 * Sets the gpu coefficient for this contract instance.
+	 * @param gpuCoefficient The coefficient decides how much data to be allocated to the gpu.
+	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
+	 */
+	public void setGPUCoefficient(int gpuCoefficient) {
+		this.gpuCoefficient = gpuCoefficient;
+	}
+
+
 	
 	/**
 	 * Gets the user code wrapper. In the case of a pact, that object will be the stub with the user function,
