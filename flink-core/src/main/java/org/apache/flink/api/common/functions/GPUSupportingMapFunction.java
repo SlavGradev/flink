@@ -29,7 +29,6 @@ public abstract class GPUSupportingMapFunction<T,O> implements MapFunction<T,O> 
 	}
 
 	public abstract O cpuMap(T value);
-	public abstract O[] gpuMap(ArrayList<T> value);
-	public abstract float getK();
+	public abstract O[] gpuMap(ArrayList<T> values);
 }
 

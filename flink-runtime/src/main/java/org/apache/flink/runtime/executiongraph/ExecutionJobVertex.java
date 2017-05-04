@@ -119,11 +119,6 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 		int vertexParallelism = jobVertex.getParallelism();
 		int numTaskVertices = vertexParallelism > 0 ? vertexParallelism : defaultParallelism;
 
-		if(jobVertex.getGPUCoefficient() > 0){
-			// Add GPU taskSlot
-			numTaskVertices += 1;
-		}
-
 		this.parallelism = numTaskVertices;
 
 		int maxP = jobVertex.getMaxParallelism();
