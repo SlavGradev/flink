@@ -76,6 +76,11 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 	public static final int PARALLELISM_DEFAULT = -1;
 
 	/**
+	 * The value determining how the much of the data is provided to the gpu
+	 */
+	public static final int GPU_COEFFICIENT_DEFAULT = 0;
+
+	/**
 	 * The flag value indicating an unknown or unset parallelism. This value is
 	 * not a valid parallelism and indicates that the parallelism should remain
 	 * unchanged.

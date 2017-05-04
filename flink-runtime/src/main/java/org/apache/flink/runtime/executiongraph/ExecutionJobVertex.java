@@ -119,7 +119,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 		int vertexParallelism = jobVertex.getParallelism();
 		int numTaskVertices = vertexParallelism > 0 ? vertexParallelism : defaultParallelism;
 
-		if(jobVertex.getOperatorPrettyName().contains("Map")){
+		if(jobVertex.getGPUCoefficient() > 0){
 			// Add GPU taskSlot
 			numTaskVertices += 1;
 		}
@@ -173,7 +173,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 				JobManagerOptions.MAX_ATTEMPTS_HISTORY_SIZE.defaultValue();
 
 
-		boolean onGPU = jobVertex.getOperatorPrettyName().contains("Map");
+		boolean onGPU = jobVertex.getGPUCoefficient() > 0;
 
 		// create all task vertices
 		for (int i = 0; i < numTaskVertices; i++) {
