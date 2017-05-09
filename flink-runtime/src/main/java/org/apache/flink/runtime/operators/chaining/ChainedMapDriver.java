@@ -45,7 +45,7 @@ public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 			BatchTask.instantiateUserCode(this.config, userCodeClassLoader, MapFunction.class);
 		this.mapper = mapper;
 		FunctionUtils.setFunctionRuntimeContext(mapper, getUdfRuntimeContext());
-		this.onGPU = false;
+
 		if(onGPU) {
 			this.gpuMapper = (GPUSupportingMapFunction<IT, OT>) this.mapper;
 			this.inputs = new ArrayList<>();

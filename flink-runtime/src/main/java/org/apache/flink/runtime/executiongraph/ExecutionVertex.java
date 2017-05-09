@@ -344,7 +344,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			for (int i = 0; i < sourcePartitions.length; i++) {
 				IntermediateResultPartition irp = sourcePartitions[i];
 				for (int j = 0; j < k; j++) {
-					edges[i + j] = new ExecutionEdge(irp, this, inputNumber);
+					edges[k * i + j] = new ExecutionEdge(irp, this, inputNumber);
 				}
 			}
 		}
@@ -651,6 +651,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 				consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
 			}
 		} else {
+			int gpuCoefficient = getJobVertex().getJobVertex().getGPUCoefficient();
 			for (ExecutionEdge[] edges : inputEdges) {
 				for (int i = 0; i < edges.length; i++) {
 					ExecutionEdge[] edgeArray = new ExecutionEdge[1];
@@ -658,16 +659,13 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 					InputChannelDeploymentDescriptor[] partitions = InputChannelDeploymentDescriptor
 						.fromEdges(edgeArray, targetSlot, lazyScheduling);
 
-					// If the produced partition has multiple consumers registered, we
-					// need to request the one matching our sub task index.
-					// TODO Refactor after removing the consumers from the intermediate result partitions
-					int numConsumerEdges = edges[0].getSource().getConsumers().get(0).size();
+					int numConsumerEdges = edges[0].getSource().getConsumers().get(0).size() - getJobVertex().getJobVertex().getGPUCoefficient();
 
-					int index = (i == 0) ? 0 : numConsumerEdges - i;
+					int index = i % gpuCoefficient;
 
-					int queueToRequest = index % numConsumerEdges;
+					int queueToRequest = (index == 0) ? 0 : numConsumerEdges + index;
 
-					IntermediateDataSetID resultId = edges[0].getSource().getIntermediateResult().getId();
+					IntermediateDataSetID resultId = edges[i].getSource().getIntermediateResult().getId();
 
 					consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
 				}
