@@ -47,6 +47,8 @@ public abstract class Operator<OUT> implements Visitable<Operator<?>> {
 
 	private int gpuCoefficient = ExecutionConfig.GPU_COEFFICIENT_DEFAULT; // how much data is given to a gpu
 
+	private int cpuCoefficient = ExecutionConfig.CPU_COEFFICIENT_DEFAULT; // how much data is given to a cpu
+
 	/**
 	 * The return type of the user function.
 	 */
@@ -194,6 +196,24 @@ public abstract class Operator<OUT> implements Visitable<Operator<?>> {
 	 */
 	public int getGPUCoefficient() {
 		return this.gpuCoefficient;
+	}
+
+	/**
+	 * Sets the cpu coefficient for this contract instance.
+	 * @param cpuCoefficient The coefficient decides how much data to be allocated to the cpu.
+	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
+	 */
+	public void setCPUCoefficient(int cpuCoefficient) {
+		this.cpuCoefficient = cpuCoefficient;
+	}
+
+	/**
+	 * Gets the gpu coefficient for this instance. The coefficient decides how much data to be allocated to the gpu.
+	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
+	 * @return The parallelism.
+	 */
+	public int getCPUCoefficient() {
+		return this.cpuCoefficient;
 	}
 
 	/**

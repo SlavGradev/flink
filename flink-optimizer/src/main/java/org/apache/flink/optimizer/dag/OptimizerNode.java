@@ -103,6 +103,8 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 
 	private int gpuCoefficient = ExecutionConfig.GPU_COEFFICIENT_DEFAULT;
 
+	private int cpuCoefficient = ExecutionConfig.CPU_COEFFICIENT_DEFAULT;
+
 	private long minimalMemoryPerSubTask = -1;
 
 	protected int id = -1; 				// the id for this node.
@@ -403,11 +405,12 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 	/**
 	 * Gets the gpu coefficient for this instance. The coefficient decides how much data to be allocated to the gpu.
 	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
-	 * @return The parallelism.
+	 * @return GPUCoefficient.
 	 */
 	public int getGPUCoefficient() {
 		return this.gpuCoefficient;
 	}
+
 
 	/**
 	 * Sets the gpu coefficient for this contract instance.
@@ -416,6 +419,24 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 	 */
 	public void setGPUCoefficient(int gpuCoefficient) {
 		this.gpuCoefficient = gpuCoefficient;
+	}
+
+	/**
+	 * Gets the cpu coefficient for this instance. The coefficient decides how much data to be allocated to the cpu.
+	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
+	 * @return CPUCoefficient.
+	 */
+	public int getCPUCoefficient() {
+		return this.cpuCoefficient;
+	}
+
+	/**
+	 * Sets the cpu coefficient for this contract instance.
+	 * @param cpuCoefficient The coefficient decides how much data to be allocated to the cpu.
+	 * If a cpu gets x values, a gpu will get x * gpuCoefficient values.
+	 */
+	public void setCPUCoefficient(int cpuCoefficient) {
+		this.cpuCoefficient = cpuCoefficient;
 	}
 
 	/**

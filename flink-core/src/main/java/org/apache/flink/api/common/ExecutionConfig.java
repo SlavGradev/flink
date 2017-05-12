@@ -81,6 +81,11 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 	public static final int GPU_COEFFICIENT_DEFAULT = 0;
 
 	/**
+	 * The value determining how the much of the data is provided to the cpu
+	 */
+	public static final int CPU_COEFFICIENT_DEFAULT = 1;
+
+	/**
 	 * The flag value indicating an unknown or unset parallelism. This value is
 	 * not a valid parallelism and indicates that the parallelism should remain
 	 * unchanged.
@@ -152,6 +157,12 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 	 */
 
 	private boolean onGPU;
+
+	/**
+	 * Is the task part of an operator which uses a GPU
+	 */
+
+	private boolean isGPUUsedForOperator;
 
 
 
@@ -646,6 +657,21 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 
 	public void setOnGPU(boolean onGPU) {
 		this.onGPU = onGPU;
+	}
+
+	/**
+	 * Get the flag indicating if this task is part of an operator which uses a gpu
+	 *
+	 * @return True, if gpu is used for the operator this task belongs to
+	 */
+
+	public boolean isGPUUsedForOperator(){
+		return isGPUUsedForOperator;
+	}
+
+
+	public void setIsGPUUsedForOperator(boolean isGPUUsedForOperator) {
+		this.isGPUUsedForOperator = isGPUUsedForOperator;
 	}
 
 

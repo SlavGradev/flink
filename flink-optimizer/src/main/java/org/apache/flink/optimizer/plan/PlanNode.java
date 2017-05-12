@@ -75,6 +75,8 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 	private int parallelism;
 
 	private int gpuCoefficient;
+
+	private int cpuCoefficient;
 	
 	private boolean pFlag;							// flag for the internal pruning algorithm
 	
@@ -89,6 +91,7 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 		
 		this.parallelism = template.getParallelism();
 		this.gpuCoefficient = template.getGPUCoefficient();
+		this.cpuCoefficient = template.getCPUCoefficient();
 
 		// check, if there is branch at this node. if yes, this candidate must be associated with
 		// the branching template node.
@@ -318,6 +321,14 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 
 	public int getGPUCoefficient() {
 		return this.gpuCoefficient;
+	}
+
+	public void setCPUCoefficient(int cpuCoefficient) {
+		this.cpuCoefficient = cpuCoefficient;
+	}
+
+	public int getCPUCoefficient() {
+		return this.cpuCoefficient;
 	}
 	
 	public long getGuaranteedAvailableMemory() {

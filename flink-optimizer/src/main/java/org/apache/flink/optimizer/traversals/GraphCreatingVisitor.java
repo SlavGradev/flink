@@ -261,6 +261,10 @@ public class GraphCreatingVisitor implements Visitor<Operator<?>> {
 			n.setGPUCoefficient(c.getGPUCoefficient());
 		}
 
+		if (c.getCPUCoefficient() > 1) {
+			n.setCPUCoefficient(c.getCPUCoefficient());
+		}
+
 		return true;
 	}
 

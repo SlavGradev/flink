@@ -69,6 +69,9 @@ public final class TaskDeploymentDescriptor implements Serializable {
 	/** Is this task going to be ran on GPU */
 	private final boolean onGPU;
 
+	/** Is this task going to be ran on GPU */
+	private final boolean isGPUUsedForOperator;
+
 	public TaskDeploymentDescriptor(
 		SerializedValue<JobInformation> serializedJobInformation,
 		SerializedValue<TaskInformation> serializedTaskInformation,
@@ -80,7 +83,8 @@ public final class TaskDeploymentDescriptor implements Serializable {
 		TaskStateHandles taskStateHandles,
 		Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
 		Collection<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors,
-		boolean onGPU) {
+		boolean onGPU,
+		boolean isGPUUsedForOperator) {
 
 		this.serializedJobInformation = Preconditions.checkNotNull(serializedJobInformation);
 		this.serializedTaskInformation = Preconditions.checkNotNull(serializedTaskInformation);
@@ -101,6 +105,7 @@ public final class TaskDeploymentDescriptor implements Serializable {
 		this.producedPartitions = Preconditions.checkNotNull(resultPartitionDeploymentDescriptors);
 		this.inputGates = Preconditions.checkNotNull(inputGateDeploymentDescriptors);
 		this.onGPU = onGPU;
+		this.isGPUUsedForOperator = isGPUUsedForOperator;
 	}
 
 	public TaskDeploymentDescriptor(
@@ -116,7 +121,7 @@ public final class TaskDeploymentDescriptor implements Serializable {
 			Collection<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors) {
 		this(serializedJobInformation, serializedTaskInformation, executionAttemptId, allocationId, subtaskIndex,
 			attemptNumber, targetSlotNumber, taskStateHandles, resultPartitionDeploymentDescriptors,
-			inputGateDeploymentDescriptors, false);
+			inputGateDeploymentDescriptors, false, false);
 	}
 
 	/**
@@ -171,6 +176,13 @@ public final class TaskDeploymentDescriptor implements Serializable {
 	 */
 	public boolean isOnGPU() {
 		return onGPU;
+	}
+
+	/**
+	 * Returns if the task is part of an operator which uses a gpu
+	 */
+	public boolean isGPUUsedForOperator() {
+		return isGPUUsedForOperator;
 	}
 
 	public Collection<ResultPartitionDeploymentDescriptor> getProducedPartitions() {

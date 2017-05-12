@@ -79,6 +79,11 @@ public class MapOperator<IN, OUT> extends SingleInputUdfOperator<IN, OUT, MapOpe
 			po.setGPUCoefficient(this.getGpuCoefficient());
 		}
 
+		if(this.getCpuCoefficient() >= 1) {
+			// use specified cpu coefficient
+			po.setCPUCoefficient(this.getCpuCoefficient());
+		}
+
 		return po;
 	}
 	

@@ -38,6 +38,7 @@ public abstract class Operator<OUT, O extends Operator<OUT, O>> extends DataSet<
 	
 	protected int parallelism = ExecutionConfig.PARALLELISM_DEFAULT;
 	private int gpuCoefficient = ExecutionConfig.GPU_COEFFICIENT_DEFAULT;
+	private int cpuCoefficient = ExecutionConfig.CPU_COEFFICIENT_DEFAULT;
 
 	protected Operator(ExecutionEnvironment context, TypeInformation<OUT> resultType) {
 		super(context, resultType);
@@ -78,6 +79,15 @@ public abstract class Operator<OUT, O extends Operator<OUT, O>> extends DataSet<
 	 */
 	public int getGpuCoefficient() {
 		return this.gpuCoefficient;
+	}
+
+	/**
+	 * Returns the cpu coefficient of this operator.
+	 *
+	 * @return The cpu coefficient of this operator.
+	 */
+	public int getCpuCoefficient() {
+		return this.cpuCoefficient;
 	}
 
 	/**
@@ -126,6 +136,29 @@ public abstract class Operator<OUT, O extends Operator<OUT, O>> extends DataSet<
 		Preconditions.checkArgument(gpuCoefficient >= 0,
 			"The gpu coefficient of an operator must be at least 0.");
 
+		this.gpuCoefficient = gpuCoefficient;
+
+		@SuppressWarnings("unchecked")
+		O returnType = (O) this;
+		return returnType;
+	}
+
+	/**
+	 * Sets the gpuRation for this operator.
+	 * The gpu coefficient must be 0 or more.
+	 * The cpu coefficient must be 1 or more.
+	 *
+	 * @param gpuCoefficient The coefficient for this operator. A value equal to {@link ExecutionConfig#GPU_COEFFICIENT_DEFAULT}
+	 *        will use the system default.
+	 * @param cpuCoefficient The coefficient for this operator. A value equal to {@link ExecutionConfig#CPU_COEFFICIENT_DEFAULT}
+	 *        will use the system default.
+	 * @return The operator with set gpu coefficient.
+	 */
+	public O setCPUGPURatio(int cpuCoefficient, int gpuCoefficient) {
+		Preconditions.checkArgument(gpuCoefficient >= 0,
+			"The gpu coefficient of an operator must be at least 0.");
+
+		this.cpuCoefficient = cpuCoefficient;
 		this.gpuCoefficient = gpuCoefficient;
 
 		@SuppressWarnings("unchecked")

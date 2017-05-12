@@ -20,7 +20,6 @@ package org.apache.flink.runtime.executiongraph;
 
 import org.apache.flink.api.common.Archiveable;
 import org.apache.flink.api.common.JobID;
-import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.runtime.JobException;
 import org.apache.flink.runtime.deployment.InputChannelDeploymentDescriptor;
@@ -95,6 +94,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 	private volatile boolean scheduleLocalOnly;
 
 	private boolean onGPU;
+
+	private boolean isGPUUsedForOperator;
 
 	// --------------------------------------------------------------------------------------------
 
@@ -174,6 +175,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 		this.timeout = timeout;
 		this.onGPU = onGPU;
+		this.isGPUUsedForOperator = getJobVertex().getJobVertex().getGPUCoefficient() > 0;
 	}
 
 
@@ -298,7 +300,16 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 	public void connectSource(int inputNumber, IntermediateResult source, JobEdge edge, int consumerNumber) {
 
-		final DistributionPattern pattern = edge.getDistributionPattern();
+		DistributionPattern pattern = edge.getDistributionPattern();
+
+		if(onGPU){
+			pattern = DistributionPattern.ALL_TO_ALL_WITH_GPU_COEFFICIENT;
+		}
+
+		if(!onGPU &&  isGPUUsedForOperator){
+			pattern = DistributionPattern.ALL_TO_ALL_WITH_CPU_COEFFICIENT;
+		}
+
 		final IntermediateResultPartition[] sourcePartitions = source.getPartitions();
 
 		ExecutionEdge[] edges;
@@ -310,6 +321,16 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 			case ALL_TO_ALL:
 				edges = connectAllToAll(sourcePartitions, inputNumber);
+				break;
+
+			case ALL_TO_ALL_WITH_CPU_COEFFICIENT:
+				edges = connectAllToAllWithCoefficient(sourcePartitions, inputNumber,
+													   getJobVertex().getJobVertex().getCPUCoefficient());
+				break;
+
+			case ALL_TO_ALL_WITH_GPU_COEFFICIENT:
+				edges = connectAllToAllWithCoefficient(sourcePartitions, inputNumber,
+													   getJobVertex().getJobVertex().getGPUCoefficient());
 				break;
 
 			default:
@@ -329,26 +350,13 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 	private ExecutionEdge[] connectAllToAll(IntermediateResultPartition[] sourcePartitions, int inputNumber) {
 		int numOfEdges = sourcePartitions.length;
-		int k = (onGPU)? this.getJobVertex().getJobVertex().getGPUCoefficient() : 1;
-		numOfEdges *= k;
 
 		ExecutionEdge[] edges = new ExecutionEdge[numOfEdges];
 
-		if(!onGPU) {
-			for (int i = 0; i < sourcePartitions.length; i++) {
-				IntermediateResultPartition irp = sourcePartitions[i];
-				edges[i] = new ExecutionEdge(irp, this, inputNumber);
-			}
-		} else {
-			// K times more edges are created
-			for (int i = 0; i < sourcePartitions.length; i++) {
-				IntermediateResultPartition irp = sourcePartitions[i];
-				for (int j = 0; j < k; j++) {
-					edges[k * i + j] = new ExecutionEdge(irp, this, inputNumber);
-				}
-			}
+		for (int i = 0; i < sourcePartitions.length; i++) {
+			IntermediateResultPartition irp = sourcePartitions[i];
+			edges[i] = new ExecutionEdge(irp, this, inputNumber);
 		}
-
 
 		return edges;
 	}
@@ -408,6 +416,22 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 				return edges;
 			}
 		}
+	}
+
+	private ExecutionEdge[] connectAllToAllWithCoefficient(IntermediateResultPartition[] sourcePartitions,
+														   int inputNumber, int coefficient) {
+		int numOfEdges = sourcePartitions.length * coefficient;
+
+		ExecutionEdge[] edges = new ExecutionEdge[numOfEdges];
+
+		for (int i = 0; i < sourcePartitions.length; i++) {
+			IntermediateResultPartition irp = sourcePartitions[i];
+			for (int j = 0; j < coefficient; j++) {
+				edges[coefficient * i + j] = new ExecutionEdge(irp, this, inputNumber);
+			}
+		}
+
+		return edges;
 	}
 
 	public void setScheduleLocalOnly(boolean scheduleLocalOnly) {
@@ -635,7 +659,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 		}
 
 
-		if(!onGPU) {
+		if(!onGPU && !isGPUUsedForOperator){
 			for (ExecutionEdge[] edges : inputEdges) {
 				InputChannelDeploymentDescriptor[] partitions = InputChannelDeploymentDescriptor
 					.fromEdges(edges, targetSlot, lazyScheduling);
@@ -651,23 +675,31 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 				consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
 			}
 		} else {
-			int gpuCoefficient = getJobVertex().getJobVertex().getGPUCoefficient();
+			int numOfEdgesPerGPU = getJobVertex().getJobVertex().getGPUCoefficient();
+			int numOfEdgesPerCPU = getJobVertex().getJobVertex().getCPUCoefficient();
+
+			int numEdgesPerSource = (onGPU) ? numOfEdgesPerGPU
+											: numOfEdgesPerCPU;
 			for (ExecutionEdge[] edges : inputEdges) {
-				for (int i = 0; i < edges.length; i++) {
-					ExecutionEdge[] edgeArray = new ExecutionEdge[1];
-					edgeArray[0] = edges[i];
-					InputChannelDeploymentDescriptor[] partitions = InputChannelDeploymentDescriptor
-						.fromEdges(edgeArray, targetSlot, lazyScheduling);
 
-					int numConsumerEdges = edges[0].getSource().getConsumers().get(0).size() - getJobVertex().getJobVertex().getGPUCoefficient();
+				int numOfInputEdges = inputEdges[0].length;
+				int numOfSources = (onGPU) ? numOfInputEdges / getJobVertex().getJobVertex().getGPUCoefficient()
+					                       : numOfInputEdges / getJobVertex().getJobVertex().getCPUCoefficient();
 
-					int index = i % gpuCoefficient;
+				for (int i = 0; i < numOfSources; i++) {
+					for (int j = 0; j < numEdgesPerSource; j++) {
+						ExecutionEdge[] edgeArray = new ExecutionEdge[]{edges[i * numEdgesPerSource + j]};
 
-					int queueToRequest = (index == 0) ? 0 : numConsumerEdges + index;
+						InputChannelDeploymentDescriptor[] partitions = InputChannelDeploymentDescriptor
+							.fromEdges(edgeArray, targetSlot, lazyScheduling);
 
-					IntermediateDataSetID resultId = edges[i].getSource().getIntermediateResult().getId();
+						int queueToRequest = (onGPU) ? j
+											         : numOfEdgesPerGPU + (subTaskIndex - 1) * numOfEdgesPerCPU + j;
 
-					consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
+						IntermediateDataSetID resultId = edges[i].getSource().getIntermediateResult().getId();
+
+						consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
+					}
 				}
 			}
 		}
@@ -686,7 +718,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			taskStateHandles,
 			producedPartitions,
 			consumedPartitions,
-			onGPU);
+			onGPU,
+			isGPUUsedForOperator);
 	}
 
 	// --------------------------------------------------------------------------------------------

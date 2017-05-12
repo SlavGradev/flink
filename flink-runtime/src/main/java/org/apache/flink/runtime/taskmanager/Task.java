@@ -256,6 +256,9 @@ public class Task implements Runnable, TaskActions {
 	/** Is the task scheduled to run a GPU */
 	private boolean onGPU;
 
+	/** Is the task part of an operator that uses a GPU */
+	private boolean isGPUUsedForOperator;
+
 	/**
 	 * <p><b>IMPORTANT:</b> These constructors may not start any work that would need to
 	 * be undone in the case of a failing task deployment.</p>
@@ -286,7 +289,8 @@ public class Task implements Runnable, TaskActions {
 		ResultPartitionConsumableNotifier resultPartitionConsumableNotifier,
 		PartitionProducerStateChecker partitionProducerStateChecker,
 		Executor executor,
-		boolean onGPU) {
+		boolean onGPU,
+		boolean isGPUUsedForOperation) {
 
 		Preconditions.checkNotNull(jobInformation);
 		Preconditions.checkNotNull(taskInformation);
@@ -340,6 +344,7 @@ public class Task implements Runnable, TaskActions {
 		this.partitionProducerStateChecker = Preconditions.checkNotNull(partitionProducerStateChecker);
 		this.executor = Preconditions.checkNotNull(executor);
 		this.onGPU = onGPU;
+		this.isGPUUsedForOperator = isGPUUsedForOperation;
 
 		// create the reader and writer structures
 
@@ -378,6 +383,7 @@ public class Task implements Runnable, TaskActions {
 		counter = 0;
 
 		for (InputGateDeploymentDescriptor inputGateDeploymentDescriptor: inputGateDeploymentDescriptors) {
+			inputGateDeploymentDescriptor.getInputChannelDeploymentDescriptors();
 			SingleInputGate gate = SingleInputGate.create(
 				taskNameWithSubtaskAndId,
 				jobId,
@@ -433,7 +439,7 @@ public class Task implements Runnable, TaskActions {
 			resultPartitionDeploymentDescriptors, inputGateDeploymentDescriptors, targetSlotNumber, taskStateHandles,
 			memManager, ioManager, networkEnvironment, bcVarManager, taskManagerActions,inputSplitProvider,
 			checkpointResponder, libraryCache, fileCache, taskManagerConfig, metricGroup,
-			resultPartitionConsumableNotifier, partitionProducerStateChecker, executor, false);
+			resultPartitionConsumableNotifier, partitionProducerStateChecker, executor, false, false);
 	}
 
 	// ------------------------------------------------------------------------
@@ -620,6 +626,8 @@ public class Task implements Runnable, TaskActions {
 
 			// Set the GPU type of the execution Config
 			executionConfig.setOnGPU(onGPU);
+			executionConfig.setIsGPUUsedForOperator(isGPUUsedForOperator);
+			System.out.println("This is a "+ (onGPU?"GPU":"CPU") +"task.");
 
 
 			// ----------------------------------------------------------------

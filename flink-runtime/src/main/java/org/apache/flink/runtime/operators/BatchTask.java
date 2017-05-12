@@ -649,7 +649,8 @@ public class BatchTask<S extends Function, OT> extends AbstractInvokable impleme
 	 */
 	protected void initInputReaders() throws Exception {
 
-		if(!getEnvironment().getExecutionConfig().isGPUTask()) {
+		if(!this.getEnvironment().getExecutionConfig().isGPUUsedForOperator() &&
+		   !this.getEnvironment().getExecutionConfig().isGPUTask()) {
 			final int numInputs = getNumTaskInputs();
 			final MutableReader<?>[] inputReaders = new MutableReader<?>[numInputs];
 
