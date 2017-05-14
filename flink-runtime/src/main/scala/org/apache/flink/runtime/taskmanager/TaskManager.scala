@@ -1226,12 +1226,14 @@ class TaskManager(
 
           val resultID = info.getIntermediateDataSetID
           val partitionInfo = info.getInputChannelDeploymentDescriptor
-          val reader = task.getInputGateById(resultID)
+          val readers = task.getInputGateById(resultID)
 
-          if (reader != null) {
+          if (readers != null) {
             Future {
               try {
-                reader.updateInputChannel(partitionInfo)
+                for(i <- 0 until readers.size()){
+                  readers.get(i).updateInputChannel(partitionInfo)
+                }
               }
               catch {
                 case t: Throwable =>

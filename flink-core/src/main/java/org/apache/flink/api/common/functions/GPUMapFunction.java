@@ -18,15 +18,12 @@
 
 package org.apache.flink.api.common.functions;
 
-import java.util.ArrayList;
-
-public abstract class GPUSupportingRichMapFunction<IN, OUT> extends RichMapFunction<IN, OUT>{
+public abstract class GPUMapFunction<T,O> implements MapFunction<T,O>, GPUSupportingMapFunction<T, O> {
 
 	@Override
-	public OUT map(IN value) throws Exception {
+	public O map(T value) throws Exception {
 		return cpuMap(value);
 	}
 
-	public abstract OUT cpuMap(IN value);
-	public abstract OUT[] gpuMap(ArrayList<IN> values);
 }
+

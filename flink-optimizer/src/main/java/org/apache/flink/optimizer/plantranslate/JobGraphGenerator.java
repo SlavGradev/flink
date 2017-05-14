@@ -818,6 +818,8 @@ public class JobGraphGenerator implements Visitor<PlanNode> {
 				}
 			}
 		}
+
+		chaining = false;
 		
 		final JobVertex vertex;
 		final TaskConfig config;
@@ -1082,21 +1084,12 @@ public class JobGraphGenerator implements Visitor<PlanNode> {
 		// ------------ connect the vertices to the job graph --------------
 		final DistributionPattern distributionPattern;
 
-		switch (channel.getShipStrategy()) {
-			case FORWARD:
-				distributionPattern = DistributionPattern.POINTWISE;
-				break;
-			case PARTITION_RANDOM:
-			case BROADCAST:
-			case PARTITION_HASH:
-			case PARTITION_CUSTOM:
-			case PARTITION_RANGE:
-			case PARTITION_FORCED_REBALANCE:
-				distributionPattern = DistributionPattern.ALL_TO_ALL;
-				break;
-			default:
-				throw new RuntimeException("Unknown runtime ship strategy: " + channel.getShipStrategy());
+		if (channel.getShipStrategy().equals(ShipStrategyType.FORWARD) && !(targetVertex.getGPUCoefficient() > 0) && !(targetVertex.getCPUCoefficient() > 1) ){
+			distributionPattern = DistributionPattern.POINTWISE;
+		} else {
+			distributionPattern = DistributionPattern.ALL_TO_ALL;
 		}
+
 
 		final ResultPartitionType resultType;
 

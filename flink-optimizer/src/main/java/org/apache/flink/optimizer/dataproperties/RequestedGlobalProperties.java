@@ -362,8 +362,8 @@ public final class RequestedGlobalProperties implements Cloneable {
 		// if we request nothing, then we need no special strategy. forward, if the number of instances remains
 		// the same, randomly repartition otherwise
 		if (isTrivial() || this.partitioning == PartitioningProperty.ANY_DISTRIBUTION) {
-			ShipStrategyType shipStrategy = globalDopChange ? ShipStrategyType.PARTITION_RANDOM :
-																ShipStrategyType.FORWARD;
+			// Always use PARTITION_RANDOM
+			ShipStrategyType shipStrategy = ShipStrategyType.PARTITION_RANDOM;
 
 			DataExchangeMode em = DataExchangeMode.select(exchangeMode, shipStrategy, breakPipeline);
 			channel.setShipStrategy(shipStrategy, em);

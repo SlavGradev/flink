@@ -277,8 +277,7 @@ public class SingleInputGate implements InputGate {
 
 			InputChannel current = inputChannels.get(partitionId);
 
-			if(current == null)	return; 
-
+			if(current == null) return;
 
 			if (current.getClass() == UnknownInputChannel.class) {
 

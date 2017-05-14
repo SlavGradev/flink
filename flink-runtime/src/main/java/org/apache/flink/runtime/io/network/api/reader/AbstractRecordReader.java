@@ -85,6 +85,8 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 
 			final BufferOrEvent bufferOrEvent = inputGate.getNextBufferOrEvent();
 
+			if(bufferOrEvent == null) return false;
+
 			if (bufferOrEvent.isBuffer()) {
 				currentRecordDeserializer = recordDeserializers[bufferOrEvent.getChannelIndex()];
 				currentRecordDeserializer.setNextBuffer(bufferOrEvent.getBuffer());

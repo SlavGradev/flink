@@ -20,9 +20,9 @@
 package org.apache.flink.runtime.operators.chaining;
 
 import org.apache.flink.api.common.functions.Function;
+import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.util.FunctionUtils;
-import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.operators.BatchTask;
@@ -50,12 +50,6 @@ public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 			this.gpuMapper = (GPUSupportingMapFunction<IT, OT>) this.mapper;
 			this.inputs = new ArrayList<>();
 		}
-
-		//FunctionUtils.setOnGPUOption(mapper, this.executionConfig.isGPUTask());
-		//FunctionUtils.setOnGPUOption(mapper, true);
-		//FunctionUtils.setGPUParameters(mapper, this.config.getConfiguration().getBytes("udf", null));
-
-
 	}
 
 	@Override

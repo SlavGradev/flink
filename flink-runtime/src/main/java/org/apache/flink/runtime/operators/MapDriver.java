@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.operators;
 
 import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.functions.GPUMapFunction;
 import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.metrics.Counter;
@@ -93,7 +94,6 @@ public class MapDriver<IT, OT> implements Driver<MapFunction<IT, OT>, OT> {
 		final MapFunction<IT, OT> function = this.taskContext.getStub();
 		final Collector<OT> outputCollector = new CountingCollector<>(this.taskContext.getOutputCollector(), numRecordsOut);
 
-
 		if (objectReuseEnabled) {
 			IT record = this.taskContext.<IT>getInputSerializer(0).getSerializer().createInstance();
 	
@@ -111,6 +111,7 @@ public class MapDriver<IT, OT> implements Driver<MapFunction<IT, OT>, OT> {
 					numRecordsIn.inc();
 				}
 				final GPUSupportingMapFunction<IT, OT> gpuFunction = (GPUSupportingMapFunction<IT, OT>) function;
+
 				OT[] outputs = gpuFunction.gpuMap(inputs);
 				for(OT output : outputs){
 					outputCollector.collect(output);

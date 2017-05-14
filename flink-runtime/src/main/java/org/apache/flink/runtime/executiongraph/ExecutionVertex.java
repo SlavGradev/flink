@@ -682,7 +682,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 											: numOfEdgesPerCPU;
 			for (ExecutionEdge[] edges : inputEdges) {
 
-				int numOfInputEdges = inputEdges[0].length;
+				int numOfInputEdges = edges.length;
 				int numOfSources = (onGPU) ? numOfInputEdges / getJobVertex().getJobVertex().getGPUCoefficient()
 					                       : numOfInputEdges / getJobVertex().getJobVertex().getCPUCoefficient();
 
@@ -696,7 +696,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 						int queueToRequest = (onGPU) ? j
 											         : numOfEdgesPerGPU + (subTaskIndex - 1) * numOfEdgesPerCPU + j;
 
-						IntermediateDataSetID resultId = edges[i].getSource().getIntermediateResult().getId();
+						IntermediateDataSetID resultId = edges[i * numEdgesPerSource + j].getSource().getIntermediateResult().getId();
 
 						consumedPartitions.add(new InputGateDeploymentDescriptor(resultId, queueToRequest, partitions));
 					}
