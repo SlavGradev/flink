@@ -94,6 +94,8 @@ public class MapDriver<IT, OT> implements Driver<MapFunction<IT, OT>, OT> {
 		final MapFunction<IT, OT> function = this.taskContext.getStub();
 		final Collector<OT> outputCollector = new CountingCollector<>(this.taskContext.getOutputCollector(), numRecordsOut);
 
+//		ArrayList<IT> records = new ArrayList<>();
+
 		if (objectReuseEnabled) {
 			IT record = this.taskContext.<IT>getInputSerializer(0).getSerializer().createInstance();
 	
@@ -106,24 +108,48 @@ public class MapDriver<IT, OT> implements Driver<MapFunction<IT, OT>, OT> {
 			IT record = null;
 			if(onGPU){
 				final ArrayList<IT> inputs = new ArrayList<>();
+
+				long gpu_data_copy_start = System.nanoTime();
+
 				while(this.running && ((record = input.next()) != null)) {
 					inputs.add(record);
 					numRecordsIn.inc();
 				}
+
+
+				//records.addAll(inputs);
 				final GPUSupportingMapFunction<IT, OT> gpuFunction = (GPUSupportingMapFunction<IT, OT>) function;
 
+				gpuFunction.initialize(inputs.size());
+
 				OT[] outputs = gpuFunction.gpuMap(inputs);
+
 				for(OT output : outputs){
 					outputCollector.collect(output);
 				}
 
+				long time = (System.nanoTime() - gpu_data_copy_start);
+				//System.out.println("GPU Data Preparation and Execution " + time);
+				gpuFunction.setDataProcessingTime(time);
+				gpuFunction.releaseResources();
+
+
 			} else {
+				long gpu_data_copy_start = System.nanoTime();
 				while (this.running && ((record = input.next()) != null)) {
 					numRecordsIn.inc();
 					outputCollector.collect(function.map(record));
+					//records.add(record);
 				}
+				//System.out.println("CPU Data Preparation and Execution " + (System.nanoTime() - gpu_data_copy_start));
 			}
 		}
+		//StringBuffer sb = new StringBuffer();
+		//sb.append("Added " + ((onGPU)?"GPU ":"CPU ") + records.size() + " ");
+		//for(IT record : records){
+		//	sb.append(record + " ");
+		//}
+		//System.out.println(sb.toString());
 	}
 
 	@Override

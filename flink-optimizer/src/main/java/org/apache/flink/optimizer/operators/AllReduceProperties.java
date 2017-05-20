@@ -50,7 +50,7 @@ public final class AllReduceProperties extends OperatorDescriptorSingle {
 		} else {
 			// non forward case.plug in a combiner
 			Channel toCombiner = new Channel(in.getSource());
-			toCombiner.setShipStrategy(ShipStrategyType.FORWARD, DataExchangeMode.PIPELINED);
+			toCombiner.setShipStrategy(ShipStrategyType.PARTITION_RANDOM, DataExchangeMode.PIPELINED);
 			
 			// create an input node for combine with same parallelism as input node
 			ReduceNode combinerNode = ((ReduceNode) node).getCombinerUtilityNode();
@@ -60,6 +60,8 @@ public final class AllReduceProperties extends OperatorDescriptorSingle {
 					"Combine ("+node.getOperator().getName()+")", toCombiner, DriverStrategy.ALL_REDUCE);
 			combiner.setCosts(new Costs(0, 0));
 			combiner.initProperties(toCombiner.getGlobalProperties(), toCombiner.getLocalProperties());
+			combiner.setGPUCoefficient(node.getGPUCoefficient());
+			combiner.setCPUCoefficient(node.getCPUCoefficient());
 			
 			Channel toReducer = new Channel(combiner);
 			toReducer.setShipStrategy(in.getShipStrategy(), in.getShipStrategyKeys(),

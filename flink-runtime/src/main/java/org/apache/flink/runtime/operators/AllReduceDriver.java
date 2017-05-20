@@ -20,6 +20,7 @@
 package org.apache.flink.runtime.operators;
 
 import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.functions.GPUReduceFunction;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.runtime.operators.util.metrics.CountingCollector;
 import org.apache.flink.util.Collector;
@@ -30,6 +31,8 @@ import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.common.typeutils.TypeSerializerFactory;
 import org.apache.flink.runtime.operators.util.TaskConfig;
 import org.apache.flink.util.MutableObjectIterator;
+
+import java.util.ArrayList;
 
 /**
  * Reduce task which is executed by a Task Manager. The task has a
@@ -55,12 +58,15 @@ public class AllReduceDriver<T> implements Driver<ReduceFunction<T>, T> {
 
 	private boolean objectReuseEnabled = false;
 
+	private boolean onGPU;
+
 	// ------------------------------------------------------------------------
 
 	@Override
 	public void setup(TaskContext<ReduceFunction<T>, T> context) {
 		this.taskContext = context;
 		this.running = true;
+		this.onGPU = context.getExecutionConfig().isGPUTask();
 	}
 	
 	@Override
@@ -143,13 +149,27 @@ public class AllReduceDriver<T> implements Driver<ReduceFunction<T>, T> {
 
 			collector.collect(value);
 		} else {
-			T val2;
-			while (running && (val2 = input.next()) != null) {
-				numRecordsIn.inc();
-				val1 = stub.reduce(val1, val2);
+			if(onGPU){
+				ArrayList<T> inputs = new ArrayList<>();
+				T value;
+
+				while((value = input.next()) != null){
+					inputs.add(value);
+					numRecordsIn.inc();
+				}
+
+				GPUReduceFunction<T> gpuFunction = (GPUReduceFunction<T>) stub;
+				val1 = gpuFunction.reduce(inputs);
+			} else {
+				T val2;
+				while (running && (val2 = input.next()) != null) {
+					numRecordsIn.inc();
+					val1 = stub.reduce(val1, val2);
+				}
 			}
 
 			collector.collect(val1);
+			System.out.println("Reduce Added: " + numRecordsIn.getCount());
 		}
 	}
 

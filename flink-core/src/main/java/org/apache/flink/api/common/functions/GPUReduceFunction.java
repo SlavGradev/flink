@@ -20,13 +20,8 @@ package org.apache.flink.api.common.functions;
 
 import java.util.ArrayList;
 
-public interface GPUSupportingMapFunction<T,O> {
+public abstract class GPUReduceFunction<T>  implements ReduceFunction<T> {
 
-	O cpuMap(T value);
-	O[] gpuMap(ArrayList<T> values);
+	public abstract T reduce(ArrayList<T> values) throws Exception;
 
-	void initialize(int size);
-	void releaseResources();
-
-	void setDataProcessingTime(long time);
 }

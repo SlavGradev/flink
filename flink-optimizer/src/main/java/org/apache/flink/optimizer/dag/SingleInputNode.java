@@ -271,8 +271,8 @@ public abstract class SingleInputNode extends OptimizerNode {
 			for (PlanNode plan: broadcastPlanCandidates) {
 				NamedChannel c = new NamedChannel(broadcastConnectionName, plan);
 				DataExchangeMode exMode = DataExchangeMode.select(broadcastConnection.getDataExchangeMode(),
-										ShipStrategyType.BROADCAST, broadcastConnection.isBreakingPipeline());
-				c.setShipStrategy(ShipStrategyType.BROADCAST, exMode);
+										ShipStrategyType.PARTITION_RANDOM, broadcastConnection.isBreakingPipeline());
+				c.setShipStrategy(ShipStrategyType.PARTITION_RANDOM, exMode);
 				broadcastChannels.add(c);
 			}
 			broadcastPlanChannels.add(broadcastChannels);

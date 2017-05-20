@@ -43,6 +43,10 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 
 	private boolean isFinished;
 
+	private long time = 0;
+
+	private long start = 0;
+
 	/**
 	 * Creates a new AbstractRecordReader that de-serializes records from the given input gate and
 	 * can spill partial records to disk, if they grow large.
@@ -69,8 +73,10 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 
 		while (true) {
 			if (currentRecordDeserializer != null) {
-				DeserializationResult result = currentRecordDeserializer.getNextRecord(target);
 
+				start = System.nanoTime();
+				DeserializationResult result = currentRecordDeserializer.getNextRecord(target);
+				time += (System.nanoTime() - start);
 				if (result.isBufferConsumed()) {
 					final Buffer currentBuffer = currentRecordDeserializer.getCurrentBuffer();
 
@@ -85,7 +91,10 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 
 			final BufferOrEvent bufferOrEvent = inputGate.getNextBufferOrEvent();
 
-			if(bufferOrEvent == null) return false;
+			if(bufferOrEvent == null) {
+				//System.out.println("Serialization took: " + time);
+				return false;
+			}
 
 			if (bufferOrEvent.isBuffer()) {
 				currentRecordDeserializer = recordDeserializers[bufferOrEvent.getChannelIndex()];
@@ -105,6 +114,7 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 				if (handleEvent(bufferOrEvent.getEvent())) {
 					if (inputGate.isFinished()) {
 						isFinished = true;
+						//System.out.println("Serialization took: " + time);
 						return false;
 					}
 					else if (hasReachedEndOfSuperstep()) {
@@ -123,5 +133,9 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 				buffer.recycle();
 			}
 		}
+	}
+
+	public long getTime(){
+		return time;
 	}
 }

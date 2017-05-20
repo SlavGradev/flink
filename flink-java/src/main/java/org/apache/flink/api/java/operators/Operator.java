@@ -165,4 +165,44 @@ public abstract class Operator<OUT, O extends Operator<OUT, O>> extends DataSet<
 		O returnType = (O) this;
 		return returnType;
 	}
+
+	/**
+	 * Sets the gpuRation for this operator.
+	 * The gpu percentage
+	 * @return The operator with set gpu coefficient.
+	 */
+	public O setGPUPercentage(int gpuPercentage) {
+		Preconditions.checkArgument(gpuCoefficient >= 0,
+			"The gpu coefficient of an operator must be at least 0.");
+
+		int times = 100;
+
+		if(gpuPercentage > (times - gpuPercentage) / parallelism)
+
+		this.cpuCoefficient = (100 - gpuPercentage) / parallelism;
+		this.gpuCoefficient = gpuPercentage;
+
+
+		if(oneDivisibleByOther(cpuCoefficient, gpuCoefficient)){
+			if(cpuCoefficient > gpuCoefficient){
+				cpuCoefficient = cpuCoefficient/gpuCoefficient;
+				gpuCoefficient = 1;
+			} else {
+				gpuCoefficient = gpuCoefficient/cpuCoefficient;
+				cpuCoefficient = 1;
+			}
+		}
+
+		@SuppressWarnings("unchecked")
+		O returnType = (O) this;
+		return returnType;
+	}
+
+	private boolean oneDivisibleByOther(int cpuCoefficient, int gpuCoefficient) {
+		if(cpuCoefficient > gpuCoefficient){
+			return cpuCoefficient % gpuCoefficient == 0;
+		} else {
+			return gpuCoefficient % cpuCoefficient == 0;
+		}
+	}
 }

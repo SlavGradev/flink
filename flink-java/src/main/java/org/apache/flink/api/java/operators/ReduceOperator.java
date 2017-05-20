@@ -124,6 +124,7 @@ public class ReduceOperator<IN> extends SingleInputUdfOperator<IN, IN, ReduceOpe
 			po.setInput(input);
 			// the parallelism for a non grouped reduce can only be 1
 			po.setParallelism(1);
+			po.setGPUCoefficient(getGpuCoefficient());
 			
 			return po;
 		}

@@ -558,10 +558,12 @@ public class Task implements Runnable, TaskActions {
 	 */
 	@Override
 	public void run() {
-
+		//long start_run = System.nanoTime();
+		System.out.println((taskNameWithSubtask + (onGPU?"GPU":"CPU") + " task starts : " + System.nanoTime()));
 		// ----------------------------
 		//  Initial State transition
 		// ----------------------------
+
 		while (true) {
 			ExecutionState current = this.executionState;
 			if (current == ExecutionState.CREATED) {
@@ -851,6 +853,8 @@ public class Task implements Runnable, TaskActions {
 				LOG.error("Error during metrics de-registration of task {} ({}).", taskNameWithSubtask, executionId, t);
 			}
 		}
+
+		System.out.println((taskNameWithSubtask + (onGPU?"GPU":"CPU") + " task finished : " + System.nanoTime()));
 	}
 
 	private ClassLoader createUserCodeClassloader(LibraryCacheManager libraryCache) throws Exception {
