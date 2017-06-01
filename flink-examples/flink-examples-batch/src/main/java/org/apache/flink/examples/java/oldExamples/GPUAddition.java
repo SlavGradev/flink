@@ -5,7 +5,9 @@ import com.google.common.primitives.Ints;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.*;
-import org.apache.flink.api.common.functions.GPUSupportingMapFunction;
+import org.apache.flink.api.common.functions.GPUMapFunction;
+import org.apache.flink.util.Collector;
+import org.apache.flink.util.MutableObjectIterator;
 
 
 import java.util.ArrayList;
@@ -14,7 +16,7 @@ import static jcuda.driver.JCudaDriver.*;
 import static jcuda.driver.JCudaDriver.cuMemFree;
 import static jcuda.driver.JCudaDriver.cuMemcpyDtoH;
 
-public class GPUAddition extends GPUSupportingMapFunction<Integer, Integer>{
+public class GPUAddition extends GPUMapFunction<Integer, Integer> {
 
 	private final String moduleLocation = "/home/skg113/gpuflink/gpuflink-kernels/NumberAddition.ptx";
 
@@ -24,7 +26,8 @@ public class GPUAddition extends GPUSupportingMapFunction<Integer, Integer>{
 	}
 
 	@Override
-	public Integer[] gpuMap(ArrayList<Integer> values) {
+	public Integer[] gpuMap() {
+		ArrayList<Integer> values = new ArrayList<>();
 		if(values.size() == 0){
 			return new Integer[0];
 		}
@@ -108,6 +111,21 @@ public class GPUAddition extends GPUSupportingMapFunction<Integer, Integer>{
 
 
 		return result;
+	}
+
+	@Override
+	public void releaseResources() {
+
+	}
+
+	@Override
+	public void setDataProcessingTime(long time) {
+
+	}
+
+	@Override
+	public void initialize(MutableObjectIterator<Integer> input, Collector<Integer> outputCollector) {
+
 	}
 
 }

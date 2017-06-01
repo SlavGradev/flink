@@ -15,9 +15,9 @@ public class DoubleCubedExample {
 
 		int[] numberOfNodesToTry = new int[]{16};
 		int[] gpuPercentages = new int[]{};
-		int[] cpuCoefficients = new int[]{1};//{1, 1, 1, 1, 1,  1,  1,  1,  1,  1, 1, 0};
-		int[] gpuCoefficients = new int[]{15};//{0, 1, 2, 4, 7, 10, 15, 23, 35, 60, 130, 1};
-		int times = 5;
+		int[] cpuCoefficients = new int[]{1};//{1, 1, 1, 1, 1,  1,  1,  1,  1,  1,   1, 0};
+		int[] gpuCoefficients = new int[]{1};//{0, 1, 2, 4, 7, 10, 15, 23, 35, 60, 130, 1};
+		int times = 2;
 
 		String datasetFileLocation = "/home/skg113/gpuflink/data/10_million_doubles.txt";
 		String resultLocation = "/home/skg113/gpuflink/results/10_million_doubles_cubed.txt";
@@ -32,13 +32,11 @@ public class DoubleCubedExample {
 		ArrayList<Double> list = readDataSetFile(datasetFileLocation);
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
-		String formatData = "Number Of Attempt, Percentages Given To The GPU, RAM to GPU, Kernel Call, GPU to RAM, End-to-End GPUMap, Total Time\n";
-		printResult(formatData, writer);
 
 		// Warm-up
 		DataSet<Double> doubless = env.fromCollection(list);
-		DataSet<Double> cubeds = doubless.map(new GPUDoubleCubed()).setParallelism(1)
-			.setCPUGPURatio(0, 1);
+		DataSet<Double> cubeds = doubless.map(new GPUDoubleCubed()).setParallelism(16)
+			.setCPUGPURatio(1, 1);
 		try {
 			cubeds.collect();
 		} catch (Exception e) {
@@ -54,6 +52,10 @@ public class DoubleCubedExample {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+
+		String formatData = "Number Of Attempt, Percentages Given To The GPU, RAM to GPU, Kernel Call, GPU to RAM, End-to-End GPUMap, Total Time\n";
+		printResult(formatData, writer);
 
 		for (int numNodes : numberOfNodesToTry){
 			for (int i = 0; i < gpuCoefficients.length; i++) {
@@ -76,6 +78,7 @@ public class DoubleCubedExample {
 					long data_processing_time = insrs[8] - gpuMap_time;
 
 					accTime = env.getLastJobExecutionResult().getNetRuntime();
+
 
 					printResult(gpuPercentage+ "," + j + "," + host_to_device_time + "," + kernel_execution_time + "," +
 								device_to_host_time + "," + gpuMap_time + "," + data_processing_time + "," + accTime, writer);

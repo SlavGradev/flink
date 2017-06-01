@@ -18,6 +18,9 @@
 
 package org.apache.flink.api.common.functions;
 
+import org.apache.flink.util.Collector;
+import org.apache.flink.util.MutableObjectIterator;
+
 import java.util.ArrayList;
 
 public interface GPUSupportingMapFunction<T,O> {
@@ -25,7 +28,8 @@ public interface GPUSupportingMapFunction<T,O> {
 	O cpuMap(T value);
 	O[] gpuMap(ArrayList<T> values);
 
-	void initialize(int size);
+	void initialize(int size) throws Exception;
+
 	void releaseResources();
 
 	void setDataProcessingTime(long time);

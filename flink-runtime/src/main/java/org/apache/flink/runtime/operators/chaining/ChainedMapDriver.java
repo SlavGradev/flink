@@ -45,7 +45,7 @@ public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 			BatchTask.instantiateUserCode(this.config, userCodeClassLoader, MapFunction.class);
 		this.mapper = mapper;
 		FunctionUtils.setFunctionRuntimeContext(mapper, getUdfRuntimeContext());
-
+		onGPU = this.executionConfig.isGPUTask();
 		if(onGPU) {
 			this.gpuMapper = (GPUSupportingMapFunction<IT, OT>) this.mapper;
 			this.inputs = new ArrayList<>();
@@ -86,6 +86,7 @@ public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 	@Override
 	public void collect(IT record) {
 		if(onGPU){
+			this.numRecordsIn.inc();
 			inputs.add(record);
 		}else {
 			try {
@@ -101,10 +102,15 @@ public class ChainedMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 	public void close() {
 		if(onGPU){
 			try {
+
+				this.gpuMapper.initialize(inputs.size());
+
 				OT[] outputs = this.gpuMapper.gpuMap(inputs);
 				for(OT output : outputs) {
 					this.outputCollector.collect(output);
 				}
+
+				this.gpuMapper.releaseResources();
 			} catch (Exception ex) {
 				throw new ExceptionInChainedStubException(this.taskName, ex);
 			}

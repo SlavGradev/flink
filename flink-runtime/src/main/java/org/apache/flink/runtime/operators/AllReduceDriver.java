@@ -153,6 +153,8 @@ public class AllReduceDriver<T> implements Driver<ReduceFunction<T>, T> {
 				ArrayList<T> inputs = new ArrayList<>();
 				T value;
 
+				inputs.add(val1);
+
 				while((value = input.next()) != null){
 					inputs.add(value);
 					numRecordsIn.inc();

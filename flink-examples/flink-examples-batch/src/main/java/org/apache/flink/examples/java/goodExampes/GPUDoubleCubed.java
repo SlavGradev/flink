@@ -6,6 +6,8 @@ import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.*;
 import org.apache.flink.api.common.functions.GPUMapFunction;
+import org.apache.flink.util.Collector;
+import org.apache.flink.util.MutableObjectIterator;
 
 import java.util.ArrayList;
 
@@ -14,6 +16,9 @@ import static jcuda.driver.JCudaDriver.*;
 public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
 
 	private int size;
+	MutableObjectIterator<Double> input;
+	Collector<Double> collector;
+	double[] values;
 
 	private CUdeviceptr pInputs;
 	private CUdeviceptr pOutputs;
@@ -32,26 +37,28 @@ public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
 	}
 
 	@Override
-	public Double[] gpuMap(ArrayList<Double> values) {
+	public Double[] gpuMap() {
+
+
 		DoubleCubedExample.insrs[0] = System.nanoTime();
 
-		if(values.size() == 0){
+		if(values.length == 0){
 			return new Double[0];
 		}
 
 		// Get the underlying array
-		double[] inputs = Doubles.toArray(values);
+		double[] inputs = values;
 
 		// Copy over input to device memory
 		DoubleCubedExample.insrs[1] = System.nanoTime();
-		cuMemcpyHtoD(pInputs, Pointer.to(inputs), values.size() * Sizeof.DOUBLE);
-		cuMemcpyHtoD(pSize, Pointer.to(new int[] {values.size()}), Sizeof.INT);
+		cuMemcpyHtoD(pInputs, Pointer.to(inputs), values.length * Sizeof.DOUBLE);
+		cuMemcpyHtoD(pSize, Pointer.to(new int[] {values.length}), Sizeof.INT);
 		DoubleCubedExample.insrs[2] = System.nanoTime();
 
 		// Call the kernel function.
 		DoubleCubedExample.insrs[3] = System.nanoTime();
 		cuLaunchKernel(cubed,
-			(int)Math.ceil( (double) values.size() / blockSize),  1, 1,      // Grid dimension
+			(int)Math.ceil( (double) values.length / blockSize),  1, 1,      // Grid dimension
 			blockSize, 1, 1,      // Block dimension
 			0, null,               // Shared memory size and stream
 			kernelParameters, null // Kernel- and extra parameters
@@ -59,27 +66,37 @@ public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
 		cuCtxSynchronize();
 		DoubleCubedExample.insrs[4] = System.nanoTime();
 
-		double[] outputs = new double[values.size()];
+		double[] outputs = new double[values.length];
 
 		// Copy from device memory to host memory
 		DoubleCubedExample.insrs[5] = System.nanoTime();
-		cuMemcpyDtoH(Pointer.to(outputs), pOutputs, values.size() * Sizeof.DOUBLE);
+		cuMemcpyDtoH(Pointer.to(outputs), pOutputs, values.length * Sizeof.DOUBLE);
 		DoubleCubedExample.insrs[6] = System.nanoTime();
 
-		Double[] result = new Double[outputs.length];
 
 		for(int i = 0; i < outputs.length; i++){
-			result[i] = outputs[i];
+			collector.collect(outputs[i]);
 		}
 
 		DoubleCubedExample.insrs[7] = System.nanoTime();
-		return result;
+		return null;
 	}
 
 	@Override
-	public void initialize(int size) {
+	public void initialize(MutableObjectIterator<Double> input, Collector<Double> outputCollector) throws Exception{
 
-		this.size = size;
+		this.input = input;
+		this.collector = outputCollector;
+
+		ArrayList<Double> inputs = new ArrayList<>();
+		Double next;
+		while((next = input.next()) != null){
+			inputs.add(next);
+		}
+
+		values = Doubles.toArray(inputs);
+
+		this.size = inputs.size();
 		// Enable Exceptions
 		JCudaDriver.setExceptionsEnabled(true);
 
@@ -131,3 +148,4 @@ public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
 		DoubleCubedExample.insrs[8] = time;
 	}
 }
+
