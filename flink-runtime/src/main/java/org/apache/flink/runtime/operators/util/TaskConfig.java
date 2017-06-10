@@ -121,8 +121,15 @@ public class TaskConfig implements Serializable {
 	private static final String INPUT_DAM_MEMORY_PREFIX = "in.dam.mem.";
 	
 	private static final String BROADCAST_INPUT_NAME_PREFIX = "in.broadcast.name.";
-	
-	
+
+	private static final String GPU_COEFFCIENT = "in.gpuCoefficient";
+
+	private static final String CPU_COEFFCIENT = "in.cpuCoefficient";
+
+	private static final String INPUT_PARALLELISM_PREFIX = "in.parallel.";
+
+	private static final String BROADCAST_INPUT_PARALLELISM_PREFIX = "in.bc.parallel.";
+
 	// -------------------------------------- Outputs ---------------------------------------------
 	
 	private static final String OUTPUTS_NUM = "out.num";
@@ -504,6 +511,38 @@ public class TaskConfig implements Serializable {
 	
 	public String getBroadcastInputName(int groupIndex) {
 		return this.config.getString(BROADCAST_INPUT_NAME_PREFIX + groupIndex, String.format("broadcastVar%04d", groupIndex));
+	}
+
+	public void setGPUCoefficient(int gpuCoefficient) {
+		this.config.setInteger(GPU_COEFFCIENT, gpuCoefficient);
+	}
+
+	public int getGPUCoefficient() {
+		return this.config.getInteger(GPU_COEFFCIENT, 0);
+	}
+
+	public void setCPUCoefficient(int cpuCoefficient) {
+		this.config.setInteger(CPU_COEFFCIENT, cpuCoefficient);
+	}
+
+	public int getCPUCoefficient() {
+		return this.config.getInteger(CPU_COEFFCIENT, 1);
+	}
+
+	public void setBroadcastInputParallelism(int parallelism, int broadcastInputIndex) {
+		this.config.setInteger(BROADCAST_INPUT_PARALLELISM_PREFIX + broadcastInputIndex, parallelism);
+	}
+
+	public int getBroadcastInputParallelism(int broadcastInputIndex) {
+		return this.config.getInteger(BROADCAST_INPUT_PARALLELISM_PREFIX + broadcastInputIndex, 0);
+	}
+
+	public void setInputParallelism(int parallelism, int inputIndex) {
+		this.config.setInteger(INPUT_PARALLELISM_PREFIX + inputIndex, parallelism);
+	}
+
+	public int getInputParallelism(int inputIndex) {
+		return this.config.getInteger(BROADCAST_INPUT_PARALLELISM_PREFIX + inputIndex, -1);
 	}
 	
 	// --------------------------------------------------------------------------------------------

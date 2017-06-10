@@ -693,10 +693,14 @@ public class BatchTask<S extends Function, OT> extends AbstractInvokable impleme
 
 			int currentReaderOffset = 0;
 
+			int coefficient = (this.getEnvironment().getExecutionConfig().isGPUTask()) ? this.config.getGPUCoefficient()
+																					   : this.config.getCPUCoefficient();
+
 			for (int i = 0; i < numInputs; i++) {
 				//  ---------------- create the input readers ---------------------
 				// in case where a logical input unions multiple physical inputs, create a union reader
-				final int groupSize = this.getEnvironment().getAllInputGates().length;
+				final int groupSize = this.getEnvironment().getAllInputGates().length -
+											coefficient * this.config.getBroadcastInputParallelism(0);
 
 				if (groupSize == 1) {
 					// non-union case
@@ -719,7 +723,6 @@ public class BatchTask<S extends Function, OT> extends AbstractInvokable impleme
 				currentReaderOffset += groupSize;
 			}
 			this.inputReaders = inputReaders;
-
 		}
 	}
 
@@ -729,36 +732,75 @@ public class BatchTask<S extends Function, OT> extends AbstractInvokable impleme
 	 * This method requires that the task configuration, the driver, and the user-code class loader are set.
 	 */
 	protected void initBroadcastInputReaders() throws Exception {
-		final int numBroadcastInputs = this.config.getNumBroadcastInputs();
-		final MutableReader<?>[] broadcastInputReaders = new MutableReader<?>[numBroadcastInputs];
 
-		int currentReaderOffset = config.getNumInputs();
+		if(!this.getEnvironment().getExecutionConfig().isGPUUsedForOperator() &&
+		   !this.getEnvironment().getExecutionConfig().isGPUTask()) {
+			final int numBroadcastInputs = this.config.getNumBroadcastInputs();
+			final MutableReader<?>[] broadcastInputReaders = new MutableReader<?>[numBroadcastInputs];
 
-		for (int i = 0; i < this.config.getNumBroadcastInputs(); i++) {
-			//  ---------------- create the input readers ---------------------
-			// in case where a logical input unions multiple physical inputs, create a union reader
-			final int groupSize = this.config.getBroadcastGroupSize(i);
-			if (groupSize == 1) {
-				// non-union case
-				broadcastInputReaders[i] = new MutableRecordReader<IOReadableWritable>(
+			int currentReaderOffset = config.getNumInputs();
+
+			for (int i = 0; i < this.config.getNumBroadcastInputs(); i++) {
+				//  ---------------- create the input readers ---------------------
+				// in case where a logical input unions multiple physical inputs, create a union reader
+				final int groupSize = this.config.getBroadcastGroupSize(i);
+				if (groupSize == 1) {
+					// non-union case
+					broadcastInputReaders[i] = new MutableRecordReader<IOReadableWritable>(
 						getEnvironment().getInputGate(currentReaderOffset),
 						getEnvironment().getTaskManagerInfo().getTmpDirectories());
-			} else if (groupSize > 1){
-				// union case
-				InputGate[] readers = new InputGate[groupSize];
-				for (int j = 0; j < groupSize; ++j) {
-					readers[j] = getEnvironment().getInputGate(currentReaderOffset + j);
-				}
-				broadcastInputReaders[i] = new MutableRecordReader<IOReadableWritable>(
+				} else if (groupSize > 1) {
+					// union case
+					InputGate[] readers = new InputGate[groupSize];
+					for (int j = 0; j < groupSize; ++j) {
+						readers[j] = getEnvironment().getInputGate(currentReaderOffset + j);
+					}
+					broadcastInputReaders[i] = new MutableRecordReader<IOReadableWritable>(
 						new UnionInputGate(readers),
 						getEnvironment().getTaskManagerInfo().getTmpDirectories());
-			} else {
-				throw new Exception("Illegal input group size in task configuration: " + groupSize);
-			}
+				} else {
+					throw new Exception("Illegal input group size in task configuration: " + groupSize);
+				}
 
-			currentReaderOffset += groupSize;
+				currentReaderOffset += groupSize;
+			}
+			this.broadcastInputReaders = broadcastInputReaders;
+		}else{
+			// GPU being used
+			final int numBroadcastInputs = this.config.getNumBroadcastInputs();
+			final MutableReader<?>[] broadcastInputReaders = new MutableReader<?>[numBroadcastInputs];
+
+			int coefficient = (this.getEnvironment().getExecutionConfig().isGPUTask()) ? this.config.getGPUCoefficient()
+																					   : this.config.getCPUCoefficient();
+			int currentReaderOffset = config.getNumInputs() * config.getInputParallelism(0) * coefficient;
+
+			for (int i = 0; i < this.config.getNumBroadcastInputs(); i++) {
+				//  ---------------- create the input readers ---------------------
+				// in case where a logical input unions multiple physical inputs, create a union reader
+				final int groupSize = this.config.getBroadcastInputParallelism(0) * coefficient;
+				if (groupSize == 1) {
+					// non-union case
+					broadcastInputReaders[i] = new MutableRecordReader<IOReadableWritable>(
+						getEnvironment().getInputGate(currentReaderOffset),
+						getEnvironment().getTaskManagerInfo().getTmpDirectories());
+				} else if (groupSize > 1) {
+					// union case
+					InputGate[] readers = new InputGate[groupSize];
+					for (int j = 0; j < groupSize; ++j) {
+						readers[j] = getEnvironment().getInputGate(currentReaderOffset + j);
+					}
+					broadcastInputReaders[i] = new MutableRecordReader<IOReadableWritable>(
+						new UnionInputGate(readers),
+						getEnvironment().getTaskManagerInfo().getTmpDirectories());
+				} else {
+					throw new Exception("Illegal input group size in task configuration: " + groupSize);
+				}
+
+				currentReaderOffset += groupSize;
+			}
+			this.broadcastInputReaders = broadcastInputReaders;
 		}
-		this.broadcastInputReaders = broadcastInputReaders;
+
 	}
 	
 	/**

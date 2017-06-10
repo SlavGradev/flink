@@ -31,6 +31,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.examples.java.ml.util.LinearRegressionData;
 import org.apache.flink.examples.java.ml.LinearRegression.Data;
 import org.apache.flink.examples.java.ml.LinearRegression.Params;
+import org.apache.flink.util.Collector;
+import org.apache.flink.util.MutableObjectIterator;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -113,7 +115,7 @@ public class GPULinearRegression {
 
 		DataSet<Params> new_parameters = data
 			// compute a single step using every sample
-			.map(new SubUpdate()).withBroadcastSet(loop, "parameters")
+			.map(new SubUpdate()).withBroadcastSet(loop, "parameters").setGPUCoefficient(1)
 			// sum up all the steps
 			.reduce(new UpdateAccumulator())
 			// average the steps and update all parameters
@@ -128,8 +130,9 @@ public class GPULinearRegression {
 			// execute program
 			env.execute("Linear Regression example");
 		} else {
-			System.out.println("Printing result to stdout. Use --output to specify output path.");
+			System.out.println("Printing result to stdout. Use --output to specify output path: ");
 			result.print();
+			System.out.println(result.getExecutionEnvironment().getLastJobExecutionResult().getNetRuntime());
 		}
 	}
 
@@ -145,9 +148,9 @@ public class GPULinearRegression {
 	/**
 	 * Compute a single BGD type update for every parameters.
 	 */
-	public static class SubUpdate extends GPUSupportingRichMapFunction<Data,Tuple2<Params,Integer>> {
+	public static class SubUpdate extends GPURichMapFunction<Data,Tuple2<Params,Integer>> {
 
-		private final String moduleLocation = "/home/skg113/gpuflink/gpuflink-kernels/LinearRegressionSubUpdate.ptx";
+		private final String moduleLocation = "/home/skg113/gpuflink/gpuflink-kernels/output/LinearRegressionSubUpdate.ptx";
 
 		private Collection<Params> parameters; 
 
@@ -172,6 +175,11 @@ public class GPULinearRegression {
 			double theta_1 = parameter.getTheta1() - 0.01*(((parameter.getTheta0() + (parameter.getTheta1()*value.x)) - value.y) * value.x);
 
 			return new Tuple2<Params,Integer>(new Params(theta_0,theta_1),count);
+		}
+
+		@Override
+		public void initialize(int size) throws Exception {
+
 		}
 
 		@Override
@@ -228,6 +236,7 @@ public class GPULinearRegression {
 			CUdeviceptr pys = new CUdeviceptr();
 			CUdeviceptr pr0s = new CUdeviceptr();
 			CUdeviceptr pr1s = new CUdeviceptr();
+			CUdeviceptr pN = new CUdeviceptr();
 
 			// Allocating arrays for GPU
 			cuMemAlloc(pt0s, Sizeof.DOUBLE);
@@ -236,12 +245,14 @@ public class GPULinearRegression {
 			cuMemAlloc(pys, numThreads * Sizeof.DOUBLE);
 			cuMemAlloc(pr0s, numThreads * Sizeof.DOUBLE);
 			cuMemAlloc(pr1s, numThreads * Sizeof.DOUBLE);
+			cuMemAlloc(pN, Sizeof.INT);
 
 			// Copy over t0, t1, xs, and ys to device memory
 			cuMemcpyHtoD(pt0s, Pointer.to(t0), Sizeof.DOUBLE);
 			cuMemcpyHtoD(pt1s, Pointer.to(t1), Sizeof.DOUBLE);
 			cuMemcpyHtoD(pxs, Pointer.to(xs), numThreads * Sizeof.DOUBLE);
 			cuMemcpyHtoD(pys, Pointer.to(ys), numThreads * Sizeof.DOUBLE);
+			cuMemcpyHtoD(pN , Pointer.to(new int[] {values.size()}), Sizeof.INT);
 
 			// Set up the kernel parameters: A pointer to an array
 			// of pointers which point to the actual values.
@@ -251,13 +262,15 @@ public class GPULinearRegression {
 				Pointer.to(pxs),
 				Pointer.to(pys),
 				Pointer.to(pr0s),
-				Pointer.to(pr1s)
+				Pointer.to(pr1s),
+				Pointer.to(pN)
 			);
 
+			int blockSize = 512;
 			// Call the kernel function.
 			cuLaunchKernel(subUpdate,
-				1,  1, 1,      // Grid dimension
-				numThreads, 1, 1,      // Block dimension
+				(int)Math.ceil( (double) values.size() / blockSize),  1, 1,      // Grid dimension
+				blockSize, 1, 1,      // Block dimension
 				0, null,               // Shared memory size and stream
 				kernelParameters, null // Kernel- and extra parameters
 			);
@@ -270,7 +283,7 @@ public class GPULinearRegression {
 
 			// Copy from device memory to host memory
 			cuMemcpyDtoH(Pointer.to(r0s), pr0s, numThreads * Sizeof.DOUBLE);
-			cuMemcpyDtoH(Pointer.to(r1s), pr0s, numThreads * Sizeof.DOUBLE);
+			cuMemcpyDtoH(Pointer.to(r1s), pr1s, numThreads * Sizeof.DOUBLE);
 
 			Tuple2<Params, Integer>[] result = new Tuple2[values.size()];
 
@@ -284,10 +297,23 @@ public class GPULinearRegression {
 			cuMemFree(pys);
 			cuMemFree(pr0s);
 			cuMemFree(pr1s);
+			cuMemFree(pN);
 
 			return result;
 
 		}
+
+		@Override
+		public void releaseResources() {
+
+		}
+
+		@Override
+		public void setDataProcessingTime(long time) {
+
+		}
+
+
 	}
 
 	/**  
@@ -309,9 +335,9 @@ public class GPULinearRegression {
 	/**
 	 * Compute the final update by average them.home
 	 */
-	public static class Update extends GPUSupportingMapFunction<Tuple2<Params,Integer>,Params> {
+	public static class Update extends GPUMapFunction<Tuple2<Params,Integer>,Params> {
 
-		private final String moduleLocation = "/home/skg113/gpuflink/gpuflink-kernels/LinearRegressionUpdate.ptx";
+		private final String moduleLocation = "/home/skg113/gpuflink/gpuflink-kernels/output/LinearRegressionUpdate.ptx";
 
 		@Override
 		public Params cpuMap(Tuple2<Params, Integer> value) {
@@ -320,11 +346,10 @@ public class GPULinearRegression {
 
 		@Override
 		public Params[] gpuMap(ArrayList<Tuple2<Params, Integer>> values) {
-
 			if(values.size() == 0){
 				return new Params[0];
 			}
-
+			System.out.println("GPGPU");
 			// Enable Exceptions
 			JCudaDriver.setExceptionsEnabled(true);
 
@@ -354,7 +379,7 @@ public class GPULinearRegression {
 			// Copy t0, t1 and c
 			for(int i = 0; i < values.size(); i++){
 				t0s[i] = values.get(i).f0.getTheta0();
-				t1s[i] = values.get(i).f0.getTheta0();
+				t1s[i] = values.get(i).f0.getTheta1();
 				cs[i] = values.get(i).f1;
 			}
 
@@ -364,6 +389,7 @@ public class GPULinearRegression {
 			CUdeviceptr pr0s = new CUdeviceptr();
 			CUdeviceptr pr1s = new CUdeviceptr();
 			CUdeviceptr pcs = new CUdeviceptr();
+			CUdeviceptr pN = new CUdeviceptr();
 
 			// Allocating arrays for GPU
 			cuMemAlloc(pt0s, numThreads * Sizeof.DOUBLE);
@@ -371,11 +397,12 @@ public class GPULinearRegression {
 			cuMemAlloc(pr0s, numThreads * Sizeof.DOUBLE);
 			cuMemAlloc(pr1s, numThreads * Sizeof.DOUBLE);
 			cuMemAlloc(pcs, numThreads * Sizeof.INT);
+			cuMemAlloc(pN, Sizeof.INT);
 
 			// Copy over t0, t1 and c to device memory
 			cuMemcpyHtoD(pt0s, Pointer.to(t0s), numThreads * Sizeof.DOUBLE);
 			cuMemcpyHtoD(pt1s, Pointer.to(t1s), numThreads * Sizeof.DOUBLE);
-			cuMemcpyHtoD(pcs, Pointer.to(cs), numThreads * Sizeof.INT);
+			cuMemcpyHtoD(pN, Pointer.to(new int[]{values.size()}), Sizeof.INT);
 
 
 
@@ -386,13 +413,16 @@ public class GPULinearRegression {
 				Pointer.to(pt1s),
 				Pointer.to(pr0s),
 				Pointer.to(pr1s),
-				Pointer.to(pcs)
+				Pointer.to(pcs),
+				Pointer.to(pN)
 			);
+
+			int blockSize = 512;
 
 			// Call the kernel function.
 			cuLaunchKernel(update,
-				1,  1, 1,      // Grid dimension
-				numThreads, 1, 1,      // Block dimension
+				(int)Math.ceil( (double) values.size() / blockSize),  1, 1,      // Grid dimension
+				blockSize, 1, 1,      // Block dimension
 				0, null,               // Shared memory size and stream
 				kernelParameters, null // Kernel- and extra parameters
 			);
@@ -405,7 +435,7 @@ public class GPULinearRegression {
 
 			// Copy from device memory to host memory
 			cuMemcpyDtoH(Pointer.to(r0s), pr0s, numThreads * Sizeof.DOUBLE);
-			cuMemcpyDtoH(Pointer.to(r1s), pr0s, numThreads * Sizeof.DOUBLE);
+			cuMemcpyDtoH(Pointer.to(r1s), pr1s, numThreads * Sizeof.DOUBLE);
 
 			Params[] result = new Params[values.size()];
 
@@ -418,9 +448,26 @@ public class GPULinearRegression {
 			cuMemFree(pr0s);
 			cuMemFree(pr1s);
 			cuMemFree(pcs);
+			cuMemFree(pN);
 
 			return result;
 		}
+
+		@Override
+		public void initialize(int size) throws Exception {
+
+		}
+
+		@Override
+		public void releaseResources() {
+
+		}
+
+		@Override
+		public void setDataProcessingTime(long time) {
+
+		}
+
 
 	}
 

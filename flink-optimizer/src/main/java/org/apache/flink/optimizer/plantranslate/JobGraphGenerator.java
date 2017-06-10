@@ -595,8 +595,12 @@ public class JobGraphGenerator implements Visitor<PlanNode> {
 				int broadcastInputIndexDelta = translateChannel(broadcastInput, broadcastInputIndex, targetVertex, targetVertexConfig, true);
 				targetVertexConfig.setBroadcastInputName(broadcastInput.getName(), broadcastInputIndex);
 				targetVertexConfig.setBroadcastInputSerializer(broadcastInput.getSerializer(), broadcastInputIndex);
+				targetVertexConfig.setBroadcastInputParallelism(broadcastInput.getSource().getParallelism(), broadcastInputIndex);
 				broadcastInputIndex += broadcastInputIndexDelta;
 			}
+			// Set CPU  and GPU Coefficient to vertexConfig
+			targetVertexConfig.setGPUCoefficient(node.getGPUCoefficient());
+			targetVertexConfig.setCPUCoefficient(node.getCPUCoefficient());
 		} catch (Exception e) {
 			throw new CompilerException(
 				"An error occurred while translating the optimized plan to a JobGraph: " + e.getMessage(), e);
@@ -1233,6 +1237,9 @@ public class JobGraphGenerator implements Visitor<PlanNode> {
 				config.setRelativeInputMaterializationMemory(inputNum, channel.getRelativeTempMemory());
 			}
 		}
+
+		// Set Input parallelism
+		config.setInputParallelism(channel.getSource().getParallelism(),inputNum);
 	}
 	
 	private void finalizeBulkIteration(IterationDescriptor descr) {
