@@ -1054,7 +1054,7 @@ public final class ConfigConstants {
 	/**
 	 * Default number of buffers used in the network stack.
 	 */
-	public static final int DEFAULT_TASK_MANAGER_NETWORK_NUM_BUFFERS = 2048;
+	public static final int DEFAULT_TASK_MANAGER_NETWORK_NUM_BUFFERS = 20048;
 
 	/**
 	 * Default size of memory segments in the network stack and the memory manager.

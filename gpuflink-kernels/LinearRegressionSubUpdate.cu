@@ -1,10 +1,10 @@
 extern "C"
-__global__ void linear_regression_sub_update(double *t0, 
-					 double *t1, 
-					 double *x, 
-					 double *y,
-					 int *r0, 
- 					 int *r1,
+__global__ void linear_regression_sub_update(float *t0, 
+					 float *t1, 
+					 float *x, 
+					 float *y,
+					 float *r0, 
+ 					 float *r1,
 					 int *n){
  	int index = blockIdx.x*blockDim.x + threadIdx.x;
 
