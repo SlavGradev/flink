@@ -171,7 +171,6 @@ public class AllReduceDriver<T> implements Driver<ReduceFunction<T>, T> {
 			}
 
 			collector.collect(val1);
-			System.out.println("Reduce Added: " + numRecordsIn.getCount());
 		}
 	}
 
