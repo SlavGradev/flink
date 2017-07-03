@@ -1,7 +1,6 @@
 package org.apache.flink.examples.java.goodExampes;
 
-
-import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Ints;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.*;
@@ -13,52 +12,53 @@ import java.util.ArrayList;
 
 import static jcuda.driver.JCudaDriver.*;
 
-public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
+public class GPUIsNumberPrime extends GPUMapFunction<Integer, Boolean> {
+
+	private final int blockSize = 512;
+	private final String moduleLocation = "/home/skg113/gpuflink/gpuflink-kernels/output/IsNumberPrime.ptx";
 
 	private int size;
-	MutableObjectIterator<Double> input;
-	Collector<Double> collector;
-	double[] values;
 
 	private CUdeviceptr pInputs;
 	private CUdeviceptr pOutputs;
 	private CUdeviceptr pSize;
-
 	private Pointer kernelParameters;
 	private CUfunction cubed;
 
-	private final int blockSize = 512;
+	private int[] values;
+	private MutableObjectIterator<Integer> input;
+	private Collector<Boolean> collector;
 
-	private final String moduleLocation = "/home/skg113/gpuflink/gpuflink-kernels/output/DoubleCubed.ptx";
 
 	@Override
-	public Double cpuMap(Double value) {
-		return value * value * value;
+	public Boolean cpuMap(Integer value) {
+
+		if (value % 2 == 0) return false;
+		int max = (value - 1) / 2;
+		for (int i = 2; i < max; i++) {
+			if (value % ((2 * i) + 1) == 0) return false;
+		}
+		return true;
+
 	}
 
 	@Override
-	public void initialize(int size) throws Exception {
+	public Boolean[] gpuMap(ArrayList<Integer> values) {
 
-	}
-
-	@Override
-	public Double[] gpuMap(ArrayList<Double> values) {
-
-
-		DoubleCubedExample.insrs[0] = System.nanoTime();
+		IsNumberPrimeExample.insrs[0] = System.nanoTime();
 
 		if(values.size() == 0){
-			return new Double[0];
+			return new Boolean[0];
 		}
 
 		// Copy over input to device memory
-		DoubleCubedExample.insrs[1] = System.nanoTime();
-		cuMemcpyHtoD(pInputs, Pointer.to(Doubles.toArray(values)), values.size() * Sizeof.DOUBLE);
+		IsNumberPrimeExample.insrs[1] = System.nanoTime();
+		cuMemcpyHtoD(pInputs, Pointer.to(Ints.toArray(values)), values.size() * Sizeof.INT);
 		cuMemcpyHtoD(pSize, Pointer.to(new int[] {values.size()}), Sizeof.INT);
-		DoubleCubedExample.insrs[2] = System.nanoTime();
+		IsNumberPrimeExample.insrs[2] = System.nanoTime();
 
 		// Call the kernel function.
-		DoubleCubedExample.insrs[3] = System.nanoTime();
+		IsNumberPrimeExample.insrs[3] = System.nanoTime();
 		cuLaunchKernel(cubed,
 			(int)Math.ceil( (double) values.size() / blockSize),  1, 1,      // Grid dimension
 			blockSize, 1, 1,      // Block dimension
@@ -66,39 +66,42 @@ public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
 			kernelParameters, null // Kernel- and extra parameters
 		);
 		cuCtxSynchronize();
-		DoubleCubedExample.insrs[4] = System.nanoTime();
+		IsNumberPrimeExample.insrs[4] = System.nanoTime();
 
-		double[] outputs = new double[values.size()];
+		short[] outputs = new short[values.size()];
 
 		// Copy from device memory to host memory
-		DoubleCubedExample.insrs[5] = System.nanoTime();
-		cuMemcpyDtoH(Pointer.to(outputs), pOutputs, values.size() * Sizeof.DOUBLE);
-		DoubleCubedExample.insrs[6] = System.nanoTime();
+		IsNumberPrimeExample.insrs[5] = System.nanoTime();
+		cuMemcpyDtoH(Pointer.to(outputs), pOutputs, values.size()  * Sizeof.SHORT);
+		IsNumberPrimeExample.insrs[6] = System.nanoTime();
 
+		Boolean[] result = new Boolean[values.size()];
 
+		// 1 is true, 0 i false
 		for(int i = 0; i < outputs.length; i++){
-			collector.collect(outputs[i]);
+			result[i] = outputs[i] == 1;
 		}
 
-		DoubleCubedExample.insrs[7] = System.nanoTime();
-		return null;
+		IsNumberPrimeExample.insrs[7] = System.nanoTime();
+
+		return result;
 	}
 
-	//@Override
-	public void initialize(MutableObjectIterator<Double> input, Collector<Double> outputCollector) throws Exception{
+	@Override
+	public void releaseResources() {
+		cuMemFree(pInputs);
+		cuMemFree(pOutputs);
+		cuMemFree(pSize);
+	}
 
-		this.input = input;
-		this.collector = outputCollector;
+	@Override
+	public void setDataProcessingTime(long time) {
+		IsNumberPrimeExample.insrs[8] = time;
+	}
 
-		ArrayList<Double> inputs = new ArrayList<>();
-		Double next;
-		while((next = input.next()) != null){
-			inputs.add(next);
-		}
-
-		values = Doubles.toArray(inputs);
-
-		this.size = inputs.size();
+	@Override
+	public void initialize(int size) throws Exception {
+		this.size = size;
 		// Enable Exceptions
 		JCudaDriver.setExceptionsEnabled(true);
 
@@ -115,7 +118,7 @@ public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
 
 		// Obtain a function pointer to the kernel function.
 		cubed = new CUfunction();
-		cuModuleGetFunction(cubed, module, "double_cubed");
+		cuModuleGetFunction(cubed, module, "is_prime");
 
 		// Create pointers
 		pInputs = new CUdeviceptr();
@@ -125,8 +128,8 @@ public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
 		// Start Data Transfer
 
 		// Allocating arrays for GPU
-		cuMemAlloc(pInputs, this.size * Sizeof.DOUBLE);
-		cuMemAlloc(pOutputs, this.size * Sizeof.DOUBLE);
+		cuMemAlloc(pInputs, this.size * Sizeof.INT);
+		cuMemAlloc(pOutputs, this.size * Sizeof.SHORT);
 		cuMemAlloc(pSize, Sizeof.INT);
 
 		// Set up the kernel parameters: A pointer to an array
@@ -137,17 +140,4 @@ public class GPUDoubleCubed extends GPUMapFunction<Double, Double> {
 			Pointer.to(pSize)
 		);
 	}
-
-	@Override
-	public void releaseResources() {
-		cuMemFree(pInputs);
-		cuMemFree(pOutputs);
-		cuMemFree(pSize);
-	}
-
-	@Override
-	public void setDataProcessingTime(long time) {
-		DoubleCubedExample.insrs[8] = time;
-	}
 }
-

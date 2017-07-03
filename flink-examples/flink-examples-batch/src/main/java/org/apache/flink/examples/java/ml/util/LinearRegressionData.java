@@ -36,7 +36,7 @@ public class LinearRegressionData {
 	// We have the data as object arrays so that we can also generate Scala Data
 	// Sources from it.
 	public static final Object[][] PARAMS = new Object[][] { new Object[] {
-			0.0, 0.0 } };
+			0.0f, 0.0f } };
 
 	public static final Object[][] DATA = new Object[][] {
 			new Object[] { 0.5, 1.0 }, new Object[] { 1.0, 2.0 },
@@ -54,7 +54,7 @@ public class LinearRegressionData {
 	public static DataSet<Params> getDefaultParamsDataSet(ExecutionEnvironment env) {
 		List<Params> paramsList = new LinkedList<>();
 		for (Object[] params : PARAMS) {
-			paramsList.add(new Params((Double) params[0], (Double) params[1]));
+			paramsList.add(new Params((Float) params[0], (Float) params[1]));
 		}
 		return env.fromCollection(paramsList);
 	}
@@ -62,7 +62,7 @@ public class LinearRegressionData {
 	public static DataSet<Data> getDefaultDataDataSet(ExecutionEnvironment env) {
 		List<Data> dataList = new LinkedList<>();
 		for (Object[] data : DATA) {
-			dataList.add(new Data((Double) data[0], (Double) data[1]));
+			dataList.add(new Data((Float) data[0], (Float) data[1]));
 		}
 		return env.fromCollection(dataList);
 	}

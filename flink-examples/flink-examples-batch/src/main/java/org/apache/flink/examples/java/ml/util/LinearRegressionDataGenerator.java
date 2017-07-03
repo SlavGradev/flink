@@ -36,7 +36,7 @@ public class LinearRegressionDataGenerator {
 	}
 
 	private static final String POINTS_FILE = "data";
-	private static final long DEFAULT_SEED = 4650285087650871364L;
+	private static final long DEFAULT_SEED = 3650285087650871374L;
 	private static final int DIMENSIONALITY = 1;
 	private static final DecimalFormat FORMAT = new DecimalFormat("#0.00");
 	private static final char DELIMITER = ' ';
@@ -64,8 +64,8 @@ public class LinearRegressionDataGenerator {
 		}
 
 		// parse parameters
-		final int numDataPoints = Integer.parseInt(args[0]);
-		final long firstSeed = args.length > 1 ? Long.parseLong(args[4]) : DEFAULT_SEED;
+		final int numDataPoints = 20000000;//Integer.parseInt(args[0]);
+		final long firstSeed = args.length > 1 ? Long.parseLong(args[1]) : DEFAULT_SEED;
 		final Random random = new Random(firstSeed);
 		final String tmpDir = System.getProperty("java.io.tmpdir");
 
@@ -76,11 +76,11 @@ public class LinearRegressionDataGenerator {
 			StringBuilder buffer = new StringBuilder();
 
 			// DIMENSIONALITY + 1 means that the number of x(dimensionality) and target y
-			double[] point = new double[DIMENSIONALITY+1];
+			float[] point = new float[DIMENSIONALITY+1];
 
 			for (int i = 1; i <= numDataPoints; i++) {
-				point[0] = random.nextGaussian();
-				point[1] = 2 * point[0] + 0.01*random.nextGaussian();
+				point[0] = random.nextFloat();
+				point[1] = (float) (2 * point[0] + 0.01*random.nextFloat());
 				writePoint(point, buffer, pointsOut);
 			}
 
@@ -95,7 +95,7 @@ public class LinearRegressionDataGenerator {
 	}
 
 
-	private static void writePoint(double[] data, StringBuilder buffer, BufferedWriter out) throws IOException {
+	private static void writePoint(float[] data, StringBuilder buffer, BufferedWriter out) throws IOException {
 		buffer.setLength(0);
 
 		// write coordinates

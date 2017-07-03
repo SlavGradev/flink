@@ -8,11 +8,14 @@ Horizontal bar chart
 This example showcases a simple horizontal bar chart.
 """
 import matplotlib.pyplot as plt
+from operator import itemgetter
 plt.rcdefaults()
 import numpy as np
 import sys
 from matplotlib.backends.backend_pdf import PdfPages
 
+
+nanosecond_in_seconds = 10**-9
 
 f = open(sys.argv[1], 'r')
 
@@ -30,7 +33,7 @@ for line in f:
 	if "starts" in tokens[1]:
 		start_times[task_name] = task_time
 		if "DataSource" in task_name:
-			t_0 = task_time
+			t_0 = float(task_time)
 	else:
 		end_times[task_name] = task_time 
 
@@ -39,7 +42,12 @@ events = []
 
 for task, start_time in start_times.iteritems():
 	end_time = end_times[task]
-	events.append((task, float(start_time) - float(t_0), float(end_time) - float(t_0)))
+	events.append((task, (float(start_time) - t_0) * nanosecond_in_seconds, (float(end_time) - t_0) * nanosecond_in_seconds ))
+
+events.sort(key=itemgetter(1))
+
+for e in events:
+	print e
 	
 # Example data
 people = ('Tom', 'Dick', 'Harry', 'Slim', 'Jim')

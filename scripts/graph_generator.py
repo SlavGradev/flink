@@ -11,7 +11,7 @@ read_from = '/home/skg113/gpuflink/results'
 write_to = '/home/skg113/gpuflink/graphs'
 
 num_ratios = 12
-num_repeated = 5
+num_repeated = 2
 
 file_name = os.path.join(read_from, sys.argv[1])
 
@@ -43,7 +43,7 @@ plt.errorbar(percentages, times, errs, linestyle='None', ecolor='green')
 
 plt.xlabel('Percentages of the Job given to a GPU', fontsize=12)
 plt.ylabel('Time in Seconds', fontsize=12)
-plt.title('10 million doubles cubed, Average of 5 runs, 16 nodes')
+plt.title('Checking primality of 1536 32-bit prime numbers, Average of 2 runs, 16 nodes', fontsize=11)
 
 pp = PdfPages(os.path.join(write_to, sys.argv[1].split('.')[0] + '_graph.pdf'))
 

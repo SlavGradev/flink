@@ -132,11 +132,11 @@ public class LinearRegression {
 	 * A simple data sample, x means the input, and y means the target.
 	 */
 	public static class Data implements Serializable{
-		public double x,y;
+		public float x,y;
 
 		public Data() {};
 
-		public Data(double x ,double y){
+		public Data(float x ,float y){
 			this.x = x;
 			this.y = y;
 		}
@@ -153,11 +153,11 @@ public class LinearRegression {
 	 */
 	public static class Params implements Serializable{
 
-		private double theta0,theta1;
+		private float theta0,theta1;
 
 		public Params(){};
 
-		public Params(double x0, double x1){
+		public Params(float x0, float x1){
 			this.theta0 = x0;
 			this.theta1 = x1;
 		}
@@ -167,19 +167,19 @@ public class LinearRegression {
 			return theta0 + " " + theta1;
 		}
 
-		public double getTheta0() {
+		public float getTheta0() {
 			return theta0;
 		}
 
-		public double getTheta1() {
+		public float getTheta1() {
 			return theta1;
 		}
 
-		public void setTheta0(double theta0) {
+		public void setTheta0(float theta0) {
 			this.theta0 = theta0;
 		}
 
-		public void setTheta1(double theta1) {
+		public void setTheta1(float theta1) {
 			this.theta1 = theta1;
 		}
 
@@ -198,7 +198,7 @@ public class LinearRegression {
 	/**
 	 * Compute a single BGD type update for every parameters.
 	 */
-	public static class SubUpdate extends RichMapFunction<Data,Tuple2<Params,Integer>> {
+	public static class SubUpdate extends RichMapFunction<Data,Tuple2<Params,Integer>>  {
 
 		private Collection<Params> parameters; 
 
@@ -219,8 +219,8 @@ public class LinearRegression {
 				this.parameter = p; 
 			}
 
-			double theta_0 = parameter.theta0 - 0.01*((parameter.theta0 + (parameter.theta1*in.x)) - in.y);
-			double theta_1 = parameter.theta1 - 0.01*(((parameter.theta0 + (parameter.theta1*in.x)) - in.y) * in.x);
+			float theta_0 = (float) (parameter.theta0 - 0.01*((parameter.theta0 + (parameter.theta1*in.x)) - in.y));
+			float theta_1 = (float) (parameter.theta1 - 0.01*(((parameter.theta0 + (parameter.theta1*in.x)) - in.y) * in.x));
 
 			return new Tuple2<Params,Integer>(new Params(theta_0,theta_1),count);
 		}
@@ -234,8 +234,8 @@ public class LinearRegression {
 		@Override
 		public Tuple2<Params, Integer> reduce(Tuple2<Params, Integer> val1, Tuple2<Params, Integer> val2) {
 
-			double new_theta0 = val1.f0.theta0 + val2.f0.theta0;
-			double new_theta1 = val1.f0.theta1 + val2.f0.theta1;
+			float new_theta0 = val1.f0.theta0 + val2.f0.theta0;
+			float new_theta1 = val1.f0.theta1 + val2.f0.theta1;
 			Params result = new Params(new_theta0,new_theta1);
 			return new Tuple2<Params, Integer>( result, val1.f1 + val2.f1);
 

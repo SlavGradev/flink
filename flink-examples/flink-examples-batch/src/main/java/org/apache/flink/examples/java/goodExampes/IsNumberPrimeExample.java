@@ -1,24 +1,31 @@
 package org.apache.flink.examples.java.goodExampes;
 
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
+
+public class IsNumberPrimeExample {
 
 
-public class DoubleCubedExample {
 	public static long[] insrs = new long[]{0,0,0,0,0,0,0,0,0};
 	public static void main(String[] args) throws Exception{
 
 		int[] numberOfNodesToTry = new int[]{16};
 		int[] gpuPercentages = new int[]{};
-		int[] cpuCoefficients = new int[]{1};//{1, 1, 1, 1, 1,  1,  1,  1,  1,  1,   1, 0};
-		int[] gpuCoefficients = new int[]{1};//{0, 1, 2, 4, 7, 10, 15, 23, 35, 60, 130, 1};
-		int times = 2;
+		int[] cpuCoefficients = new int[]{0};//{0,   1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1};//{1, 1, 1, 1, 1,  1,  1,  1,  1,  1,   1, 0};
+		int[] gpuCoefficients = new int[]{1};//{1, 130, 60, 35, 23, 15, 10, 7, 4, 2, 1, 0};//{0, 1, 2, 4, 7, 10, 15, 23, 35, 60, 130, 1};
+		int times = 1;
 
-		String datasetFileLocation = "/home/skg113/gpuflink/data/10_million_doubles.txt";
-		String resultLocation = "/home/skg113/gpuflink/results/10_million_doubles_cubed.txt";
+		String datasetFileLocation = "/home/skg113/gpuflink/data/2000_primes.txt";
+		String resultLocation = "/home/skg113/gpuflink/results/2000_primes.txt";
 		File file = new File(resultLocation);
 		FileWriter writer = new FileWriter(file.getAbsoluteFile(), true);
 
@@ -27,29 +34,45 @@ public class DoubleCubedExample {
 		}
 
 		HashMap<String, Long> result = new HashMap<>();
-		ArrayList<Double> list = readDataSetFile(datasetFileLocation);
+		ArrayList<Integer> list = readDataSetFile(datasetFileLocation);
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 
 		// Warm-up
-		DataSet<Double> doubless = env.fromCollection(list);
-		DataSet<Double> cubeds = doubless.map(new GPUDoubleCubed()).setParallelism(16)
-			.setCPUGPURatio(1, 1);
+		DataSet<Integer> doubless = env.fromCollection(list);
+		DataSet<Boolean> cubeds = doubless.map(new MapFunction<Integer, Boolean>() {
+			@Override
+			public Boolean map(Integer value) throws Exception {
+				return true;
+			}
+		}).setParallelism(1);
 		try {
-			cubeds.collect();
+			cubeds.print();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		long acTime = env.getLastJobExecutionResult().getNetRuntime(TimeUnit.NANOSECONDS);
+
+		System.out.println("Runtime is : " + acTime);
+
+
+		// Warm-up 2
+		DataSet<Integer> doublesss = env.fromCollection(list);
+		DataSet<Boolean> cubedss = doublesss.map(new MapFunction<Integer, Boolean>() {
+			@Override
+			public Boolean map(Integer value) throws Exception {
+				return true;
+			}
+		}).setParallelism(2);
+		try {
+			cubedss.print();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		// Warm-up 2
-		DataSet<Double> doublesss = env.fromCollection(list);
-		DataSet<Double> cubedss = doubless.map(new GPUDoubleCubed()).setParallelism(16)
-			.setCPUGPURatio(1, 1);
-		try {
-			cubeds.collect();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		acTime = env.getLastJobExecutionResult().getNetRuntime();
+
+		System.out.println("Runtime is : " + acTime);
 
 
 		String formatData = "Number Of Attempt, Percentages Given To The GPU, RAM to GPU, Kernel Call, GPU to RAM, End-to-End GPUMap, Total Time\n";
@@ -60,8 +83,8 @@ public class DoubleCubedExample {
 				long accTime = 0;
 				float gpuPercentage = (gpuCoefficients[i] * 100) / ((numNodes - 1) * cpuCoefficients[i] + gpuCoefficients[i]);
 				for (int j = 0; j < times; j++) {
-					DataSet<Double> doubles = env.fromCollection(list);
-					DataSet<Double> cubed = doubles.map(new GPUDoubleCubed()).setParallelism((cpuCoefficients[i] == 0) ? 1 : numNodes)
+					DataSet<Integer> doubles = env.fromCollection(list);
+					DataSet<Boolean> cubed = doubles.map(new GPUIsNumberPrime()).setParallelism((cpuCoefficients[i] == 0) ? 1 : numNodes)
 						.setCPUGPURatio(cpuCoefficients[i], gpuCoefficients[i]);
 					try {
 						cubed.collect();
@@ -73,13 +96,15 @@ public class DoubleCubedExample {
 					long kernel_execution_time = insrs[4] - insrs[3];
 					long device_to_host_time = insrs[6] - insrs[5];
 					long gpuMap_time = insrs[7] - insrs[0];
-					long data_processing_time = insrs[8] - gpuMap_time;
+					long data_processing_time = insrs[8];
 
 					accTime = env.getLastJobExecutionResult().getNetRuntime();
 
+					System.out.println("Runtime is : " + accTime);
+
 
 					printResult(gpuPercentage+ "," + j + "," + host_to_device_time + "," + kernel_execution_time + "," +
-								device_to_host_time + "," + gpuMap_time + "," + data_processing_time + "," + accTime, writer);
+						device_to_host_time + "," + gpuMap_time + "," + data_processing_time + "," + accTime, writer);
 
 					System.gc();
 				}
@@ -89,19 +114,19 @@ public class DoubleCubedExample {
 	}
 
 	private static void printResult(String data, FileWriter writer) throws Exception {
-			writer.append(data);
-			writer.append("\n");
-			writer.flush();
+		writer.append(data);
+		writer.append("\n");
+		writer.flush();
 	}
 
-	private static ArrayList<Double> readDataSetFile(String datasetFileLocation) {
-		ArrayList<Double> result = new ArrayList<>();
+	private static ArrayList<Integer> readDataSetFile(String datasetFileLocation) {
+		ArrayList<Integer> result = new ArrayList<>();
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(datasetFileLocation));
 			String line = br.readLine();
 
 			while (line != null) {
-				result.add(Double.valueOf(line));
+				result.add(Integer.valueOf(line));
 				line = br.readLine();
 			}
 
@@ -109,6 +134,8 @@ public class DoubleCubedExample {
 		}catch(Exception e){
 			e.printStackTrace();
 		}
-		 return result;
+		return result;
 	}
+
+
 }

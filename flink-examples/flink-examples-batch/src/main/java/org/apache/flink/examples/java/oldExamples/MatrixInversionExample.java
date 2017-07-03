@@ -16,8 +16,8 @@ public class MatrixInversionExample {
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 		int[] numberOfNodesToTry = new int[]{16};
-		int[] cpuCoefficients = new int[]{1, 1, 1, 1, 1, 1,  1,  1,  1,  1,  1,   1, 0};
-		int[] gpuCoefficients = new int[]{0, 1, 2, 3, 4, 7, 10, 15, 23, 35, 60, 130, 1};
+		int[] cpuCoefficients = new int[]{0};// 1, 1, 1, 1, 1,  1,  1,  1,  1,  1,   1, 0};
+		int[] gpuCoefficients = new int[]{1};// 1, 2, 3, 4, 7, 10, 15, 23, 35, 60, 130, 1};
 		int times = 3;
 
 		String resultLocation = "/home/skg113/gpuflink/results/30_huge_matrices_inverted.txt";
@@ -28,7 +28,7 @@ public class MatrixInversionExample {
 
 		Random random = new Random();
 
-		for(int i = 0; i < 20; i++){
+		for(int i = 0; i < 30; i++){
 			float[] floats = new float[1000000];
 			for (int j = 0; j < 1000000; j++) {
 				floats[j] = random.nextFloat();

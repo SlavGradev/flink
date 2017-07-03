@@ -13,7 +13,7 @@ read_from = '/home/skg113/gpuflink/results'
 write_to = '/home/skg113/gpuflink/graphs'
 
 num_ratios = 12
-num_repeated = 5
+num_repeated = 3
 
 millisecond_in_nanoseconds = 10**6
 nanosecond_in_milliseconds = 10**-6
@@ -29,42 +29,23 @@ f.readline()
 f.readline()
 
 raw_data = {'percentages': [],
-        'host_to_device_time': [],
-        'kernel_time': [],
-        'device_to_host_time': [],
-        'gpu_map_time': [],
-        'gpu_thread_data_processing_time': [],
         'whole_execution_time': []}
 
 zipped = []
 
 for i in xrange(num_ratios):
 	percentage = 0
-	host_to_device_times = []
-	kernel_times = []
-	device_to_host_times = []
-	gpu_map_times = []
-	gpu_thread_data_processing_times = []
 	whole_execution_times = []
 
 	for j in xrange(num_repeated):
 		tokens = f.readline().split(',')
-		percentage = float(tokens[0])		
-		host_to_device_times.append(float(tokens[2]) * nanosecond_in_seconds)
-		kernel_times.append(float(tokens[3]) * nanosecond_in_seconds)
-		device_to_host_times.append(float(tokens[4]) * nanosecond_in_seconds)
-		gpu_map_times.append(float(tokens[5]) * nanosecond_in_seconds)
-		gpu_thread_data_processing_times.append((float(tokens[6]) + float(tokens[5])) * nanosecond_in_seconds)
-		whole_execution_times.append(float(tokens[7]) * millisecond_in_seconds)
+		print tokens
+		percentage = tokens[0]		
+		whole_execution_times.append(float(tokens[2]) * millisecond_in_seconds)
 	raw_data['percentages'].append(percentage)
-	raw_data['host_to_device_time'].append(statistics.mean(host_to_device_times))
-	raw_data['kernel_time'].append(statistics.mean(kernel_times))
-	raw_data['device_to_host_time'].append(statistics.mean(device_to_host_times))
-	raw_data['gpu_map_time'].append(statistics.mean(gpu_map_times))
-	raw_data['gpu_thread_data_processing_time'].append(statistics.mean(gpu_thread_data_processing_times))
 	raw_data['whole_execution_time'].append(statistics.mean(whole_execution_times))
 	
-df = pd.DataFrame(raw_data, columns = ['percentages', 'host_to_device_time', 'kernel_time', 'device_to_host_time', 'gpu_map_time', 'gpu_thread_data_processing_time', 'whole_execution_time'])
+df = pd.DataFrame(raw_data, columns = ['percentages', 'whole_execution_time'])
 
 df
 
@@ -75,7 +56,7 @@ f, ax1 = plt.subplots(1, figsize=(10,5))
 bar_width = 0.75
 
 # positions of the left bar-boundaries
-bar_l = [i+1 for i in range(len(df['host_to_device_time']))]
+bar_l = [i+1 for i in range(len(df['whole_execution_time']))]
 
 # positions of the x-axis ticks (center of the bars as bar labels)
 tick_pos = [i+(bar_width/2) for i in bar_l]
@@ -94,75 +75,6 @@ ax1.bar(bar_l,
         # with color
         color='cyan')
 
-# Create a bar plot, in position bar_1
-ax1.bar(bar_l,
-        # using the pre_score data
-        df['gpu_thread_data_processing_time'],
-        # set the width
-        width=bar_width,
-        # with the label pre score
-        label='Preparing the data for gpuMap (Flink overhead)',
-        # with alpha 0.5
-        alpha=0.5,
-        # with color
-        color='black')
-
-# Create a bar plot, in position bar_1
-ax1.bar(bar_l,
-        # using the pre_score data
-        df['gpu_map_time'],
-        # set the width
-        width=bar_width,
-        # with the label pre score
-        label='Call to gpuMap time',
-        # with alpha 0.5
-        alpha=0.5,
-        # with color
-        color='red')
-
-# Create a bar plot, in position bar_1
-ax1.bar(bar_l,
-        # using the pre_score data
-        df['host_to_device_time'],
-        # set the width
-        width=bar_width,
-        # with the label pre score
-        label='Host to device transfer time',
-        # with alpha 0.5
-        alpha=0.5,
-        # with color
-        color='blue')
-
-# Create a bar plot, in position bar_1
-ax1.bar(bar_l,
-        # using the kernel_time data
-        df['kernel_time'],
-        # set the width
-        width=bar_width,
-        # with pre_score on the bottom
-        bottom=df['host_to_device_time'],
-        # with the label mid score
-        label='Kernel execution time',
-        # with alpha 0.5
-        alpha=0.5,
-        # with color
-        color='green')
-
-# Create a bar plot, in position bar_1
-ax1.bar(bar_l,
-        # using the post_score data
-        df['device_to_host_time'],
-        # set the width
-        width=bar_width,
-        # with pre_score and kernel_time on the bottom
-        bottom=[i+j for i,j in zip(df['kernel_time'],df['host_to_device_time'])],
-        # with the label post score
-        label='Device to host transfer time',
-        # with alpha 0.5
-        alpha=0.5,
-        # with color
-        color='yellow')
-
 # set the x ticks with names
 plt.xticks(tick_pos, df['percentages'])
 
@@ -173,7 +85,7 @@ ax1.set_xlabel("Percentage of the job run on the gpu")
 #ax1.set_yscale('log')
 
 plt.legend(loc='upper left')
-plt.title("10 million doubles cubed, Average of 5 runs, 16 nodes each")
+plt.title("Linear Regression 20 million points, 10 iterations, Average of 3 runs, 16 nodes each")
 
 # Set a buffer around the edge
 plt.xlim([min(tick_pos)-bar_width, max(tick_pos)+bar_width])

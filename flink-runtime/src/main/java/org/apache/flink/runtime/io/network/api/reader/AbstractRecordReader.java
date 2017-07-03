@@ -43,8 +43,6 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 
 	private boolean isFinished;
 
-	private long time = 0;
-
 	private long start = 0;
 
 	/**
@@ -73,10 +71,8 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 
 		while (true) {
 			if (currentRecordDeserializer != null) {
-
-				start = System.nanoTime();
 				DeserializationResult result = currentRecordDeserializer.getNextRecord(target);
-				time += (System.nanoTime() - start);
+
 				if (result.isBufferConsumed()) {
 					final Buffer currentBuffer = currentRecordDeserializer.getCurrentBuffer();
 
@@ -89,10 +85,11 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 				}
 			}
 
+
 			final BufferOrEvent bufferOrEvent = inputGate.getNextBufferOrEvent();
 
+
 			if(bufferOrEvent == null) {
-				//System.out.println("Serialization took: " + time);
 				return false;
 			}
 
@@ -114,7 +111,6 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 				if (handleEvent(bufferOrEvent.getEvent())) {
 					if (inputGate.isFinished()) {
 						isFinished = true;
-						//System.out.println("Serialization took: " + time);
 						return false;
 					}
 					else if (hasReachedEndOfSuperstep()) {
@@ -135,7 +131,4 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
 		}
 	}
 
-	public long getTime(){
-		return time;
-	}
 }

@@ -175,6 +175,10 @@ public abstract class Operator<OUT, O extends Operator<OUT, O>> extends DataSet<
 		Preconditions.checkArgument(gpuCoefficient >= 0,
 			"The gpu coefficient of an operator must be at least 0.");
 
+		if(gpuPercentage > 80){
+			gpuPercentage = 100;
+		}
+
 		int times = 100;
 
 		if(gpuPercentage > (times - gpuPercentage) / parallelism)

@@ -559,7 +559,7 @@ public class Task implements Runnable, TaskActions {
 	@Override
 	public void run() {
 		//long start_run = System.nanoTime();
-		System.out.println((taskNameWithSubtask + (onGPU?"GPU":"CPU") + " task starts : " + System.nanoTime()));
+		//System.out.println((taskNameWithSubtask + (onGPU?"GPU":"CPU") + "| task starts : " + System.nanoTime()));
 		// ----------------------------
 		//  Initial State transition
 		// ----------------------------
@@ -854,7 +854,7 @@ public class Task implements Runnable, TaskActions {
 			}
 		}
 
-		System.out.println((taskNameWithSubtask + (onGPU?"GPU":"CPU") + " task finished : " + System.nanoTime()));
+		//System.out.println((taskNameWithSubtask + (onGPU?"GPU":"CPU") + "| task finished : " + System.nanoTime()));
 	}
 
 	private ClassLoader createUserCodeClassloader(LibraryCacheManager libraryCache) throws Exception {
